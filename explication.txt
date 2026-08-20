@@ -1,0 +1,113 @@
+FastAPI est un framework Python moderne qui permet de créer des API web rapidement et avec peu de code. Il est particulièrement apprécié pour développer des services backend performants.
+Tu commences par :
+
+from fastapi import FastAPI, HTTPException
+
+Tu importes FastAPI pour créer ton serveur HTTP.
+
+Puis :
+
+app = FastAPI(
+    title="Jira AI Multi-Agent API",
+    description="Jira AI Multi-Agent System",
+    version="1.0.0"
+)
+
+Tu crées ton application.
+
+Donc lorsque tu fais :
+
+uvicorn api.main:app --reload --port 8000
+
+FastAPI démarre ton backend sur :
+
+http://localhost:8000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3. CORS
+
+Tu as :
+
+app.add_middleware(
+    CORSMiddleware,
+
+
+    allow_origins=[
+        "http://localhost:4200"
+    ],
+
+
+    allow_credentials=True,
+
+
+    allow_methods=["*"],
+
+
+    allow_headers=["*"],
+)
+
+C'est nécessaire parce que ton architecture est :
+
+Angular
+localhost:4200
+
+
+        ↓ HTTP
+
+
+FastAPI
+localhost:8000
+
+Les deux sont sur des ports différents.
+
+Sans CORS, le navigateur peut bloquer les requêtes Angular → FastAPI.
+
+Tu autorises donc :
+
+http://localhost:4200
+
+à communiquer avec ton backend.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

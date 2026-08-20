@@ -1,0 +1,546 @@
+                    USER
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │  Agent 1 : Jira     │
+          │                     │
+          │ Récupérer le ticket │
+          └──────────┬──────────┘
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │ Agent 2 : Analyse   │
+          │                     │
+          │ Comprendre le ticket│
+          └──────────┬──────────┘
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │ Agent 3 : Prompt    │
+          │                     │
+          │ Générer instruction │
+          │ pour OpenCode       │
+          └──────────┬──────────┘
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │ Agent 4 : OpenCode  │
+          │                     │
+          │ Appeler OpenCode    │
+          │ modifier le projet  │
+          └─────────────────────┘
+
+
+
+Agent 1 — jira_agent
+
+Son seul travail :
+
+KAN-1
+ ↓
+Jira REST API
+ ↓
+ticket complet
+
+Il ne réfléchit pas au code.
+
+Il peut retourner :
+
+{
+    "key": "KAN-1",
+    "summary": "...",
+    "description": "...",
+    "status": "...",
+    "priority": "...",
+    "issue_type": "..."
+}
+Agent 2 — analysis_agent
+
+Il reçoit le résultat de l'Agent 1 :
+
+Ticket Jira
+     ↓
+Analysis Agent
+     ↓
+Analyse technique
+
+Par exemple :
+
+Problem:
+Le bouton Modifier ne permet pas d'ouvrir le formulaire.
+
+
+Affected areas:
+- Angular user component
+- User service
+- PUT endpoint
+
+
+Required behavior:
+- Clicking Edit opens the form
+- Existing user data must be loaded
+- PUT request must update the user
+
+Il ne génère pas encore le prompt OpenCode.
+
+Agent 3 — prompt_agent
+
+Il reçoit :
+
+Ticket Jira
++
+Analyse technique
+
+et produit :
+
+CODING INSTRUCTION
+
+Exemple :
+
+Inspect the existing Angular project.
+
+
+Implement the user edit functionality.
+
+
+1. Find the existing user component.
+2. Add the Edit action.
+3. Load the selected user's data.
+4. Open the existing edit form.
+5. Connect the form to the existing PUT endpoint.
+6. Preserve the existing architecture.
+7. Modify only necessary files.
+8. Run the relevant tests.
+9. Verify the functionality.
+
+C'est cet agent qui remplace ton generate_coding_instruction() actuel.
+
+Agent 4 — opencode_agent
+
+Il reçoit uniquement :
+
+CODING INSTRUCTION
+
+Puis :
+
+Prompt
+ ↓
+OpenCode CLI
+ ↓
+Project
+ ↓
+modifications
+
+C'est le seul agent qui possède le droit de modifier ton projet.
+
+Donc ton projet pourrait devenir
+jira_ai_agent/
+│
+├── main.py
+├── .env
+├── requirements.txt
+│
+├── agents/
+│   ├── __init__.py
+│   ├── jira_agent.py
+│   ├── analysis_agent.py
+│   ├── prompt_agent.py
+│   └── opencode_agent.py
+│
+├── graph/
+│   ├── __init__.py
+│   ├── state.py
+│   └── workflow.py
+│
+├── chatbot/
+│   ├── __init__.py
+│   └── chatbot.py
+│
+├── mcp/
+│   ├── __init__.py
+│   └── client.py
+│
+└── skills/
+    └── jira_to_prompt/
+        └── skill.md
+
+
+
+
+
+
+
+
+
+                         USER
+                           │
+                           ▼
+                  ┌────────────────┐
+                  │   CHATBOT /    │
+                  │   ORCHESTRATOR │
+                  └───────┬────────┘
+                          │
+                          ▼
+                    ┌───────────┐
+                    │ LangGraph │
+                    └─────┬─────┘
+                          │
+             ┌────────────┼─────────────┐
+             │            │             │
+             ▼            ▼             ▼
+       ┌──────────┐ ┌──────────┐ ┌──────────┐
+       │ Jira     │ │ Analysis │ │  Prompt  │
+       │ Agent    │ │ Agent    │ │  Agent   │
+       └────┬─────┘ └────┬─────┘ └────┬─────┘
+            │             │            │
+            │             │            │
+            ▼             ▼            ▼
+       Jira REST        Ollama       Ollama
+                       / Gemma       / Gemma
+                                        │
+                                        ▼
+                                  Coding Prompt
+                                        │
+                                        ▼
+                                ┌──────────────┐
+                                │ OpenCode     │
+                                │ Agent        │
+                                └──────┬───────┘
+                                       │
+                                       ▼
+                                   PROJECT
+
+
+                         USER
+                          │
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │     main.py      │
+                 │  Point d'entrée  │
+                 └────────┬─────────┘
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │     CHATBOT      │
+                 │ chatbot.py       │
+                 └────────┬─────────┘
+                          │
+                          │ user_request
+                          ▼
+                 ┌──────────────────┐
+                 │ extract_issue_key│
+                 │    main.py       │
+                 └────────┬─────────┘
+                          │
+                          │ issue_key
+                          ▼
+                 ┌──────────────────┐
+                 │   Confirmation   │
+                 │  yes / no        │
+                 └────────┬─────────┘
+                          │
+                         yes
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │   build_graph()  │
+                 │ graph/workflow.py│
+                 └────────┬─────────┘
+                          │
+                          ▼
+                  ┌───────────────┐
+                  │   LANGGRAPH   │
+                  │               │
+                  │ AgentState    │
+                  └───────┬───────┘
+                          │
+          ┌───────────────┼────────────────┐
+          │               │                │
+          ▼               ▼                ▼
+   ┌────────────┐  ┌────────────┐  ┌────────────┐
+   │ Jira Agent │  │  Analysis  │  │   Prompt   │
+   │            │  │   Agent    │  │   Agent    │
+   └─────┬──────┘  └─────┬──────┘  └─────┬──────┘
+         │               │                │
+         ▼               ▼                ▼
+    Jira REST          Ollama          Ollama
+                                          │
+                                          +
+                                         Skill
+                                          │
+                                          ▼
+                                  ┌──────────────┐
+                                  │ OpenCode     │
+                                  │ Agent        │
+                                  └──────┬───────┘
+                                         │
+                                         ▼
+                                      PROJECT
+
+
+                     USER
+                      │
+                      ▼
+                Angular Front
+                      │
+                  KAN-1
+                      │
+                      ▼
+              ┌──────────────┐
+              │   Agent 1    │
+              │     Jira     │
+              └──────┬───────┘
+                     ▼
+              ┌──────────────┐
+              │   Agent 2    │
+              │   Analysis   │
+              └──────┬───────┘
+                     ▼
+              ┌──────────────┐
+              │   Agent 3    │
+              │    Prompt    │
+              └──────┬───────┘
+                     │
+                     ▼
+              ┌─────────────────┐
+              │ Angular affiche │
+              │     Prompt      │
+              └────────┬────────┘
+                       │
+              ┌────────┴─────────┐
+              │                  │
+              ▼                  ▼
+      ✏️ Modifier Prompt    ▶️ Exécuter
+              │                  │
+              ▼                  │
+       Zone éditable             │
+              │                  │
+              ▼                  │
+       ✏️ modification           │
+              │                  │
+              ▼                  │
+          ▶️ Exécuter            │
+              │                  │
+              └────────┬─────────┘
+                       ▼
+              ┌─────────────────┐
+              │   Agent 4       │
+              │   OpenCode      │
+              └────────┬────────┘
+                       ▼
+                   PROJECT
+
+
+
+2 modes indépendants :
+
+┌───────────────────────────────┬───────────────────────────────┐
+│                               │                               │
+│     🤖 MODE ORCHESTRATEUR     │       🧩 MODE STEP-BY-STEP    │
+│                               │                               │
+│  /api/agents/{issue_key}      │  /api/jira/{issue_key}        │
+│                               │                               │
+│  Agent 1 → Agent 2 → Agent 3  │  Jira uniquement              │
+│                               │                               │
+│  🧠 Generate Prompt           │  🔎 Search                    │
+│  ✏️ Modifier                  │                               │
+│  ▶️ Exécuter                  │  📝 Prompt manuel/modifié      │
+│                               │                               │
+│                               │  ▶️ Execute                    │
+│                               │  POST /api/opencode/execute   │
+│                               │                               │
+└───────────────────────────────┴───────────────────────────────┘
+
+Et surtout : les deux modes ne doivent pas mélanger leurs logiques.
+
+
+
+                         USER
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+              ▼                       ▼
+      🤖 ORCHESTRATEUR          🧩 STEP-BY-STEP
+              │                       │
+              │                       │
+      GET /api/agents/{key}    GET /api/jira/{key}
+              │                       │
+              ▼                       ▼
+         Agent 1 Jira             Ticket Jira
+              │
+              ▼
+         Agent 2 Analysis
+              │
+              ▼
+         Agent 3 Prompt
+              │
+              ▼
+         Prompt affiché
+              │
+       ┌──────┴──────┐
+       │             │
+       ▼             ▼
+   Modifier       Exécuter
+       │             │
+       └──────┬──────┘
+              ▼
+       POST /api/opencode/execute
+              │
+              ▼
+          Agent 4
+              │
+              ▼
+           OpenCode
+              │
+              ▼
+           PROJECT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+           1. Mode Orchestrateur
+
+Un seul workflow qui enchaîne automatiquement les agents 1 → 2 → 3.
+
+┌──────────────────────────────────────────────┐
+│              🤖 ORCHESTRATOR                 │
+└──────────────────────────────────────────────┘
+
+
+             [ 🚀 Generate ]
+                    │
+                    ▼
+             ┌─────────────┐
+             │   Agent 1   │
+             │    Jira     │
+             └──────┬──────┘
+                    ▼
+             ┌─────────────┐
+             │   Agent 2   │
+             │   Analysis  │
+             └──────┬──────┘
+                    ▼
+             ┌─────────────┐
+             │   Agent 3   │
+             │    Prompt   │
+             └──────┬──────┘
+                    ▼
+          ┌─────────────────────┐
+          │ 📝 Generated Prompt │
+          └──────────┬──────────┘
+                     │
+             ┌───────┴────────┐
+             ▼                ▼
+      [ ✏️ Modifier ]    [ 🚀 Exécuter ]
+             │                │
+             ▼                │
+       modification           │
+             │                │
+             └───────┬────────┘
+                     ▼
+               ┌───────────┐
+               │  Agent 4  │
+               │ OpenCode   │
+               └─────┬─────┘
+                     ▼
+                  PROJECT
+
+Donc Generate ne lance PAS OpenCode.
+
+Il fait seulement :
+
+Agent 1
+   ↓
+Agent 2
+   ↓
+Agent 3
+   ↓
+Prompt affiché
+
+Puis l'utilisateur décide :
+
+✏️ Modifier
+
+ou
+
+🚀 Exécuter
+2. Mode Step by Step
+
+Ici, aucun enchaînement automatique.
+
+┌──────────────────────────────────────────────┐
+│             🔧 STEP BY STEP                  │
+└──────────────────────────────────────────────┘
+
+
+[ 🔎 Récupérer ]
+       │
+       ▼
+    Agent 1
+       │
+       ▼
+     STOP
+       │
+       │
+[ 🧠 Analyser ]
+       │
+       ▼
+    Agent 2
+       │
+       ▼
+     STOP
+       │
+       │
+[ 📝 Générer Prompt ]
+       │
+       ▼
+    Agent 3
+       │
+       ▼
+     STOP
+       │
+       │
+[ 🚀 Exécuter ]
+       │
+       ▼
+    Agent 4
+       │
+       ▼
+    OpenCode
+       │
+       ▼
+    PROJECT
