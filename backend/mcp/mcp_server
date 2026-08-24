@@ -1,0 +1,72 @@
+import os
+import requests
+from dotenv import load_dotenv
+from mcp.server.fastmcp import FastMCP
+
+# Chargement des variables d'environnement
+load_dotenv(override=True)
+
+# Initialisation du serveur MCP
+mcp = FastMCP("My MCP Service")
+
+
+
+# =====================================================
+#  TOOL (Météo)
+# =====================================================
+
+@mcp.tool()
+def get_weather(city: str) -> str:
+    """Get weather information for a city."""
+    api_key = os.getenv("WEATHER_API_KEY")
+
+    if not api_key:
+        return "Erreur : WEATHER_API_KEY n'est pas configurée."
+
+    url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "q": city,
+        "appid": api_key,
+        "units": "metric",
+        "lang": "fr"
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code == 404:
+            return f"Ville introuvable : {city}"
+
+        if response.status_code != 200:
+            return f"Erreur API météo : HTTP {response.status_code}"
+
+        data = response.json()
+        temperature = data["main"]["temp"]
+        feels_like = data["main"]["feels_like"]
+        humidity = data["main"]["humidity"]
+        description = data["weather"][0]["description"]
+        wind_speed = data["wind"]["speed"]
+
+        return (
+            f"Météo à {city} : "
+            f"Température {temperature}°C, "
+            f"ressenti {feels_like}°C, "
+            f"{description}, "
+            f"humidité {humidity}%, "
+            f"vent {wind_speed} m/s."
+        )
+
+    except requests.exceptions.Timeout:
+        return "Erreur : l'API météo a mis trop de temps à répondre."
+    except requests.exceptions.RequestException as e:
+        return f"Erreur de connexion à l'API météo : {e}"
+    except KeyError:
+        return "Erreur : format de réponse météo inattendu."
+
+
+if __name__ == "__main__":
+    mcp.run()
+""" 
+c'est équivalent à :
+if __name__ == "__main__":
+    mcp.run(transport="stdio") """

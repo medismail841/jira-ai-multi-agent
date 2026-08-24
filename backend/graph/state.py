@@ -1,8 +1,7 @@
-""" le cœur de LangGraph : le State partagé. """
+from typing import TypedDict, Optional, Dict, Any, Annotated
 
-
-from typing import TypedDict, Optional, Dict, Any
-
+from langgraph.graph.message import add_messages
+from langchain_core.messages import BaseMessage
 
 
 class AgentState(TypedDict, total=False):
@@ -11,29 +10,43 @@ class AgentState(TypedDict, total=False):
     # USER
     # ========================================================
 
-    user_request: str # demande originale de l'utilisateur.
+    user_request: str
+
+
+    # ========================================================
+    # MESSAGES / LLM
+    # ========================================================
+
+    messages: Annotated[
+        list[BaseMessage],
+        add_messages
+    ]
+
 
     # ========================================================
     # JIRA
     # ========================================================
 
-    issue_key: str #clé Jira/ kan-1
+    issue_key: str
 
-    ticket: Dict[str, Any] #Le contenu récupéré depuis Jira.
+    ticket: Dict[str, Any]
+
 
     # ========================================================
     # ANALYSIS
     # ========================================================
 
-    analysis: str #le résultat de l'analyse du ticket
+    analysis: str
+
 
     # ========================================================
     # PROMPT
     # ========================================================
 
-    coding_instruction: str #l'instruction destinée à OpenCode
+    coding_instruction: str
 
     prompt_file: str
+
 
     # ========================================================
     # OPENCODE
@@ -42,6 +55,22 @@ class AgentState(TypedDict, total=False):
     opencode_result: str
 
     opencode_return_code: Optional[int]
+
+
+    # ========================================================
+    # GIT / GITHUB
+    # ========================================================
+
+    git_repo: str
+
+    git_branch: str
+
+    git_commit_message: str
+
+    git_push_result: str
+
+    git_return_code: Optional[int]
+
 
     # ========================================================
     # ERROR

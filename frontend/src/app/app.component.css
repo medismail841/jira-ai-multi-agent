@@ -9,12 +9,14 @@
 :host {
   display: block;
   min-height: 100vh;
+
   font-family:
     Inter,
     "Segoe UI",
     Roboto,
     Arial,
     sans-serif;
+
   color: #172033;
 }
 
@@ -39,16 +41,21 @@ body {
 
 .header {
   height: 76px;
+
   background: #ffffff;
+
   border-bottom: 1px solid #e5e9f2;
+
   display: flex;
   align-items: center;
+
   padding: 0 32px;
 }
 
 .header-content {
   display: flex;
   align-items: center;
+
   gap: 14px;
 }
 
@@ -61,6 +68,7 @@ body {
   justify-content: center;
 
   background: #eef2ff;
+
   border-radius: 12px;
 
   font-size: 24px;
@@ -70,9 +78,11 @@ body {
   margin: 0;
 
   font-size: 20px;
+
   font-weight: 700;
 
   letter-spacing: 0.5px;
+
   color: #111827;
 }
 
@@ -80,6 +90,7 @@ body {
   margin: 3px 0 0;
 
   font-size: 13px;
+
   color: #6b7280;
 }
 
@@ -90,6 +101,7 @@ body {
 
 .main-content {
   width: 100%;
+
   min-height: calc(100vh - 76px);
 
   padding: 28px 30px;
@@ -105,10 +117,6 @@ body {
 
   display: grid;
 
-  /*
-   * IMPORTANT :
-   * exactement 50% / 50%
-   */
   grid-template-columns: 1fr 1fr;
 
   min-height: calc(100vh - 132px);
@@ -121,6 +129,7 @@ body {
 
 .column {
   min-width: 0;
+
   padding: 0 28px;
 }
 
@@ -131,7 +140,10 @@ body {
 
 .orchestrator-column {
   padding-left: 0;
+
   padding-right: 32px;
+
+  border-right: 2px solid #dfe4ee;
 }
 
 
@@ -141,25 +153,9 @@ body {
 
 .step-column {
   padding-left: 32px;
+
   padding-right: 0;
 }
-
-
-/* ============================================================
-   VERTICAL SEPARATOR
-   ============================================================ */
-
-.orchestrator-column {
-  border-right: 2px solid #dfe4ee;
-}
-
-
-/*
- * Cette ligne est la séparation centrale.
- *
- * Gauche  = Orchestrateur
- * Droite   = Step by Step
- */
 
 
 /* ============================================================
@@ -168,6 +164,7 @@ body {
 
 .column-header {
   display: flex;
+
   align-items: center;
 
   gap: 14px;
@@ -198,6 +195,7 @@ body {
   margin: 0;
 
   font-size: 20px;
+
   font-weight: 700;
 
   color: #111827;
@@ -235,6 +233,7 @@ body {
   margin: 0 0 12px;
 
   font-size: 14px;
+
   font-weight: 650;
 
   color: #374151;
@@ -242,11 +241,12 @@ body {
 
 
 /* ============================================================
-   SEARCH CONTAINER
+   SEARCH
    ============================================================ */
 
 .search-container {
   display: flex;
+
   gap: 10px;
 }
 
@@ -328,12 +328,13 @@ button:active:not(:disabled) {
 
 button:disabled {
   opacity: 0.55;
+
   cursor: not-allowed;
 }
 
 
 /* ============================================================
-   GENERATE BUTTON
+   GENERATE
    ============================================================ */
 
 .generate-button {
@@ -342,7 +343,7 @@ button:disabled {
 
 
 /* ============================================================
-   EXECUTE BUTTON
+   EXECUTE
    ============================================================ */
 
 .execute-button {
@@ -355,70 +356,541 @@ button:disabled {
 
 
 /* ============================================================
-   WORKFLOW STATUS
+   SAVE
    ============================================================ */
 
-.workflow-status {
+.save-button {
+  background: #2563eb;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+
+/* ============================================================
+   CANCEL
+   ============================================================ */
+
+.cancel-button {
+  background: #64748b;
+}
+
+.cancel-button:hover:not(:disabled) {
+  background: #475569;
+}
+
+
+/* ============================================================
+   ENTERPRISE WORKFLOW MAP
+   ============================================================ */
+
+.workflow-map-container {
+  position: relative;
+
+  overflow: hidden;
+
+  margin-bottom: 20px;
+
+  padding: 20px 18px 22px;
+
   background: #ffffff;
 
   border: 1px solid #e4e8f0;
 
-  border-radius: 14px;
-
-  padding: 16px;
-
-  margin-bottom: 20px;
+  border-radius: 16px;
 
   box-shadow:
-    0 2px 8px rgba(15, 23, 42, 0.04);
+    0 4px 12px rgba(15, 23, 42, 0.04);
 }
 
-.workflow-step {
+
+/* ============================================================
+   MAP HEADER
+   ============================================================ */
+
+.workflow-map-header {
   display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 15px;
+
+  margin-bottom: 20px;
+}
+
+.workflow-eyebrow {
+  display: block;
+
+  margin-bottom: 4px;
+
+  font-size: 9px;
+
+  font-weight: 800;
+
+  letter-spacing: 1px;
+
+  color: #94a3b8;
+}
+
+.workflow-map-header h3 {
+  margin: 0;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+  color: #172033;
+}
+
+
+/* ============================================================
+   GLOBAL STATUS
+   ============================================================ */
+
+.workflow-global-status {
+  display: inline-flex;
+
   align-items: center;
 
-  gap: 10px;
+  gap: 7px;
 
-  min-height: 38px;
+  padding: 6px 10px;
 
-  font-size: 13px;
+  border-radius: 20px;
 
-  font-weight: 600;
+  background: #f1f5f9;
 
-  color: #374151;
+  color: #64748b;
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  white-space: nowrap;
 }
 
-.step-number {
-  width: 28px;
-  height: 28px;
+.global-status-dot {
+  width: 7px;
+  height: 7px;
 
-  flex-shrink: 0;
+  border-radius: 50%;
+
+  background: #94a3b8;
+}
+
+.workflow-global-running {
+  background: #eef2ff;
+
+  color: #4f46e5;
+}
+
+.workflow-global-running .global-status-dot {
+  background: #6366f1;
+
+  animation: globalPulse 1.5s infinite;
+}
+
+.workflow-global-completed {
+  background: #ecfdf5;
+
+  color: #059669;
+}
+
+.workflow-global-completed .global-status-dot {
+  background: #10b981;
+}
+
+.workflow-global-failed {
+  background: #fef2f2;
+
+  color: #dc2626;
+}
+
+.workflow-global-failed .global-status-dot {
+  background: #ef4444;
+}
+
+
+/* ============================================================
+   MAP TRACK
+   ============================================================ */
+
+.map-track {
+  position: absolute;
+
+  top: 81px;
+
+  left: 48px;
+
+  right: 48px;
+
+  height: 3px;
+
+  border-radius: 4px;
+
+  background: #e2e8f0;
+
+  overflow: hidden;
+
+  z-index: 0;
+}
+
+.map-track-progress {
+  height: 100%;
+
+  border-radius: 4px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #6366f1,
+      #4f46e5
+    );
+
+  transition:
+    width 0.6s ease-in-out;
+}
+
+
+/* ============================================================
+   MAP NODES
+   ============================================================ */
+
+.map-nodes {
+  position: relative;
+
+  z-index: 2;
 
   display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  width: 100%;
+}
+
+.map-node-wrapper {
+  position: relative;
+
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  text-align: center;
+}
+
+
+/* ============================================================
+   NODE CONNECTOR
+   ============================================================ */
+
+.node-connector {
+  position: absolute;
+
+  top: 19px;
+
+  left: 50%;
+
+  width: 100%;
+
+  height: 3px;
+
+  background: transparent;
+
+  z-index: -1;
+}
+
+.connector-progress {
+  width: 0%;
+
+  height: 100%;
+
+  border-radius: 4px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #6366f1,
+      #4f46e5
+    );
+
+  transition:
+    width 0.5s ease;
+}
+
+.connector-completed {
+  width: 100%;
+}
+
+
+/* ============================================================
+   NODE CIRCLE
+   ============================================================ */
+
+.node-circle {
+  position: relative;
+
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+
   align-items: center;
   justify-content: center;
 
   border-radius: 50%;
 
+  background: #f8fafc;
+
+  border: 2px solid #cbd5e1;
+
+  color: #64748b;
+
+  font-size: 15px;
+
+  z-index: 3;
+
+  transition:
+    all 0.3s ease;
+}
+
+
+/* ============================================================
+   IDLE
+   ============================================================ */
+
+.map-node-wrapper.disabled .node-circle {
+  opacity: 0.85;
+}
+
+
+/* ============================================================
+   RUNNING
+   ============================================================ */
+
+.map-node-wrapper.active .node-circle {
+  background: #ffffff;
+
+  border-color: #6366f1;
+
+  color: #6366f1;
+
+  transform: scale(1.08);
+
+  box-shadow:
+    0 0 0 4px rgba(99, 102, 241, 0.12);
+
+  animation:
+    nodePulse 1.8s infinite ease-in-out;
+}
+
+
+/* ============================================================
+   COMPLETED
+   ============================================================ */
+
+.map-node-wrapper.completed .node-circle {
+  background: #10b981;
+
+  border-color: #10b981;
+
+  color: #ffffff;
+
+  box-shadow:
+    0 3px 8px rgba(16, 185, 129, 0.20);
+}
+
+.node-check {
+  font-size: 16px;
+
+  font-weight: 900;
+}
+
+
+/* ============================================================
+   FAILED
+   ============================================================ */
+
+.map-node-wrapper.failed .node-circle {
+  background: #ef4444;
+
+  border-color: #ef4444;
+
+  color: #ffffff;
+
+  box-shadow:
+    0 3px 8px rgba(239, 68, 68, 0.20);
+}
+
+.node-failed {
+  font-size: 17px;
+
+  font-weight: 900;
+}
+
+
+/* ============================================================
+   SPINNER
+   ============================================================ */
+
+.node-spinner {
+  width: 17px;
+  height: 17px;
+
+  border: 2px solid rgba(99, 102, 241, 0.20);
+
+  border-top-color: #6366f1;
+
+  border-radius: 50%;
+
+  animation:
+    spin 0.8s linear infinite;
+}
+
+
+/* ============================================================
+   NODE META
+   ============================================================ */
+
+.node-meta {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 3px;
+
+  margin-top: 10px;
+
+  min-width: 0;
+}
+
+.node-step {
+  font-size: 9px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.6px;
+
+  text-transform: uppercase;
+
+  color: #94a3b8;
+}
+
+.node-title {
+  max-width: 110px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  color: #1e293b;
+}
+
+
+/* ============================================================
+   STATUS BADGE
+   ============================================================ */
+
+.node-status-badge {
+  margin-top: 3px;
+
+  padding: 3px 7px;
+
+  border-radius: 12px;
+
+  background: #f1f5f9;
+
+  color: #64748b;
+
+  font-size: 9px;
+
+  font-weight: 750;
+
+  white-space: nowrap;
+}
+
+.status-running {
   background: #eef2ff;
 
   color: #4f46e5;
-
-  font-size: 12px;
-  font-weight: 700;
 }
 
-.step-status {
-  margin-left: auto;
+.status-completed {
+  background: #ecfdf5;
+
+  color: #059669;
 }
 
-.workflow-line {
-  width: 2px;
-  height: 16px;
+.status-failed {
+  background: #fef2f2;
 
-  margin-left: 13px;
+  color: #dc2626;
+}
 
-  background: #dfe4ee;
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+@keyframes nodePulse {
+
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(99, 102, 241, 0.35);
+  }
+
+  70% {
+    box-shadow:
+      0 0 0 8px rgba(99, 102, 241, 0);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(99, 102, 241, 0);
+  }
+
+}
+
+@keyframes globalPulse {
+
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+
+  100% {
+    opacity: 1;
+  }
+
+}
+
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+
 }
 
 
@@ -447,140 +919,249 @@ button:disabled {
 
 
 /* ============================================================
-   TICKET
+   STEP CARD
    ============================================================ */
 
-.ticket-card {
-  padding: 18px;
+.step-card {
+  padding: 0;
 }
 
-.ticket-header {
-  display: flex;
-
-  align-items: flex-start;
-  justify-content: space-between;
-
-  gap: 15px;
-}
-
-.ticket-key {
-  display: inline-block;
-
-  margin-bottom: 7px;
-
-  padding: 4px 8px;
-
-  border-radius: 6px;
-
-  background: #eef2ff;
-
-  color: #4f46e5;
-
-  font-size: 12px;
-
-  font-weight: 700;
-}
-
-.ticket-card h2 {
-  margin: 0;
-
-  font-size: 16px;
-
-  line-height: 1.4;
-
-  color: #111827;
-}
-
-.status {
-  flex-shrink: 0;
-
-  padding: 5px 9px;
-
-  border-radius: 7px;
-
-  background: #f3f4f6;
-
-  color: #4b5563;
-
-  font-size: 11px;
-
-  font-weight: 650;
-}
-
-
-/* ============================================================
-   SECTION HEADER
-   ============================================================ */
-
-.section-header {
+.step-card-header {
   display: flex;
 
   align-items: center;
 
-  gap: 12px;
+  justify-content: space-between;
+
+  gap: 15px;
 
   padding: 16px 18px;
 
   border-bottom: 1px solid #edf0f5;
 }
 
-.section-icon {
-  width: 36px;
-  height: 36px;
+.step-card-header h3 {
+  margin: 7px 0 0;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: #f3f4ff;
-
-  border-radius: 9px;
-
-  font-size: 18px;
-}
-
-.section-header h2 {
-  margin: 0;
-
-  font-size: 15px;
+  font-size: 14px;
 
   color: #111827;
 }
 
-.section-header p {
-  margin: 3px 0 0;
+.step-badge {
+  display: inline-block;
 
-  font-size: 12px;
+  padding: 4px 7px;
 
-  color: #6b7280;
+  border-radius: 5px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 10px;
+
+  font-weight: 750;
+
+  letter-spacing: 0.5px;
 }
 
 
 /* ============================================================
-   ANALYSIS
+   STEP CONTENT
    ============================================================ */
 
-.analysis-content {
+.step-content {
   padding: 18px;
 }
 
-.analysis-content pre {
+.step-content pre {
   margin: 0;
 
   white-space: pre-wrap;
 
   word-break: break-word;
 
-  font-family:
-    "Segoe UI",
-    Arial,
-    sans-serif;
+  font-size: 12px;
 
-  font-size: 13px;
-
-  line-height: 1.65;
+  line-height: 1.6;
 
   color: #374151;
+}
+
+
+/* ============================================================
+   TICKET DETAILS
+   ============================================================ */
+
+.ticket-details {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.ticket-field {
+  display: grid;
+
+  grid-template-columns: 110px minmax(0, 1fr);
+
+  gap: 10px;
+
+  padding-bottom: 8px;
+
+  border-bottom: 1px solid #f0f2f6;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+.ticket-field:last-child {
+  border-bottom: none;
+
+  padding-bottom: 0;
+}
+
+.ticket-field strong {
+  color: #64748b;
+
+  font-weight: 700;
+}
+
+.ticket-field span {
+  color: #374151;
+
+  word-break: break-word;
+}
+
+
+/* ============================================================
+   EDIT FORM
+   ============================================================ */
+
+.edit-form {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.edit-form label {
+  margin-top: 6px;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  color: #64748b;
+}
+
+.edit-form input,
+.edit-form textarea {
+  width: 100%;
+
+  padding: 10px 12px;
+
+  border: 1px solid #d6dbe5;
+
+  border-radius: 8px;
+
+  outline: none;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+  color: #1f2937;
+
+  background: #ffffff;
+}
+
+.edit-form input:focus,
+.edit-form textarea:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.10);
+}
+
+.edit-form textarea {
+  resize: vertical;
+}
+
+
+/* ============================================================
+   MARKDOWN
+   ============================================================ */
+
+.markdown-content {
+  font-size: 13px;
+
+  line-height: 1.7;
+
+  color: #374151;
+
+  overflow-wrap: anywhere;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  color: #111827;
+
+  line-height: 1.3;
+}
+
+.markdown-content h1 {
+  font-size: 20px;
+}
+
+.markdown-content h2 {
+  font-size: 17px;
+}
+
+.markdown-content h3 {
+  font-size: 15px;
+}
+
+.markdown-content p {
+  margin: 8px 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 22px;
+}
+
+.markdown-content code {
+  padding: 2px 5px;
+
+  border-radius: 4px;
+
+  background: #f1f5f9;
+
+  font-family:
+    "Consolas",
+    "Courier New",
+    monospace;
+
+  font-size: 11px;
+}
+
+.markdown-content pre {
+  padding: 13px;
+
+  overflow: auto;
+
+  border-radius: 8px;
+
+  background: #f8fafc;
+
+  border: 1px solid #e5e7eb;
 }
 
 
@@ -727,106 +1308,25 @@ button:disabled {
 
 
 /* ============================================================
-   STEP CARDS
+   SUCCESS
    ============================================================ */
 
-.step-card {
-  padding: 0;
-}
+.success-message {
+  margin: 0 18px 18px;
 
-.step-card-header {
-  display: flex;
-
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 15px;
-
-  padding: 16px 18px;
-
-  border-bottom: 1px solid #edf0f5;
-}
-
-.step-card-header h3 {
-  margin: 7px 0 0;
-
-  font-size: 14px;
-
-  color: #111827;
-}
-
-.step-badge {
-  display: inline-block;
-
-  padding: 4px 7px;
-
-  border-radius: 5px;
-
-  background: #eef2ff;
-
-  color: #4f46e5;
-
-  font-size: 10px;
-
-  font-weight: 750;
-
-  letter-spacing: 0.5px;
-}
-
-
-/* ============================================================
-   STEP CONTENT
-   ============================================================ */
-
-.step-content {
-  padding: 18px;
-}
-
-.step-content pre {
-  margin: 0;
-
-  white-space: pre-wrap;
-
-  word-break: break-word;
-
-  font-size: 12px;
-
-  line-height: 1.6;
-
-  color: #374151;
-}
-
-
-/* ============================================================
-   MINI TICKET
-   ============================================================ */
-
-.ticket-mini {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 8px;
-
-  padding: 13px;
+  padding: 12px;
 
   border-radius: 9px;
 
-  background: #f8fafc;
+  background: #ecfdf5;
 
-  border: 1px solid #e8ecf2;
-}
+  border: 1px solid #a7f3d0;
 
-.ticket-mini strong {
-  color: #4f46e5;
-
-  font-size: 13px;
-}
-
-.ticket-mini span {
-  color: #4b5563;
+  color: #047857;
 
   font-size: 12px;
+
+  font-weight: 700;
 }
 
 
@@ -835,6 +1335,14 @@ button:disabled {
    ============================================================ */
 
 .loading {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 9px;
+
   padding: 14px;
 
   margin-bottom: 18px;
@@ -852,6 +1360,20 @@ button:disabled {
   font-size: 13px;
 
   font-weight: 600;
+}
+
+.loading-spinner {
+  width: 14px;
+  height: 14px;
+
+  border: 2px solid rgba(99, 102, 241, 0.25);
+
+  border-top-color: #6366f1;
+
+  border-radius: 50%;
+
+  animation:
+    spin 0.8s linear infinite;
 }
 
 
@@ -885,6 +1407,8 @@ button:disabled {
 pre::-webkit-scrollbar,
 textarea::-webkit-scrollbar {
   width: 7px;
+
+  height: 7px;
 }
 
 pre::-webkit-scrollbar-track,
@@ -915,6 +1439,7 @@ textarea::-webkit-scrollbar-thumb:hover {
     grid-template-columns: 1fr;
   }
 
+
   .orchestrator-column {
     border-right: none;
 
@@ -926,6 +1451,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 
     margin-bottom: 35px;
   }
+
 
   .step-column {
     padding-left: 0;
@@ -940,18 +1466,23 @@ textarea::-webkit-scrollbar-thumb:hover {
     padding: 18px;
   }
 
+
   .column {
     padding-left: 0;
+
     padding-right: 0;
   }
+
 
   .search-container {
     flex-direction: column;
   }
 
+
   .search-container button {
     width: 100%;
   }
+
 
   .step-card-header {
     align-items: flex-start;
@@ -959,16 +1490,76 @@ textarea::-webkit-scrollbar-thumb:hover {
     flex-direction: column;
   }
 
+
   .step-card-header button {
     width: 100%;
   }
+
 
   .prompt-actions {
     flex-direction: column;
   }
 
+
   .prompt-actions button {
     width: 100%;
+  }
+
+
+  .workflow-map-container {
+    padding-left: 10px;
+
+    padding-right: 10px;
+  }
+
+
+  .workflow-map-header {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+
+  .workflow-global-status {
+    align-self: flex-start;
+  }
+
+
+  .map-track {
+    left: 30px;
+
+    right: 30px;
+  }
+
+
+  .node-title {
+    max-width: 75px;
+
+    font-size: 10px;
+  }
+
+
+  .node-status-badge {
+    font-size: 8px;
+
+    padding: 3px 5px;
+  }
+
+
+  .node-circle {
+    width: 34px;
+
+    height: 34px;
+  }
+
+
+  .map-track {
+    top: 81px;
+  }
+
+
+  .node-connector {
+    top: 16px;
   }
 
 }

@@ -70,7 +70,7 @@ def load_skill() -> str:
 
         "skills",
 
-        "jira_to_prompt",
+        "prompt_agent",
 
         "skill.md"
 
@@ -106,92 +106,24 @@ def load_skill() -> str:
 # ============================================================
 # PROMPT AGENT
 # ============================================================
+def prompt_agent(state: AgentState) -> AgentState:
 
-def prompt_agent(
-    state: AgentState
-) -> AgentState:
-
-    """
-    LangGraph Node 3.
-
-    Ticket
-       +
-    Analysis
-       +
-    Skill
-       ↓
-    Ollama
-       ↓
-    Coding instruction
-    """
-
-    ticket = state.get(
-        "ticket"
-    )
-
-
-    analysis = state.get(
-        "analysis"
-    )
-
+    ticket = state.get("ticket")
+    analysis = state.get("analysis")
 
     if not ticket:
-
-        raise ValueError(
-            "❌ Ticket manquant."
-        )
-
+        raise ValueError("❌ Ticket manquant.")
 
     if not analysis:
-
-        raise ValueError(
-            "❌ Analyse manquante."
-        )
-
-
-    print(
-        "\n"
-        + "=" * 60
-    )
-
-    print(
-        "📝 AGENT 3 — PROMPT"
-    )
-
-    print(
-        "=" * 60
-    )
-
+        raise ValueError("❌ Analyse manquante.")
 
     skill = load_skill()
 
-
     prompt = f"""
-
-You are an expert software engineer.
-
-Your job is to transform the Jira ticket
-and its technical analysis into a DIRECT
-EXECUTION INSTRUCTION for OpenCode.
-
-The instruction will be given directly
-to OpenCode.
-
-Do NOT ask questions.
-
-Do NOT create another prompt.
-
-Do NOT create a PRD.
-
-Do NOT explain prompt engineering.
-
-Do NOT describe what a coding agent should do
-at a high level.
-
-Give concrete implementation instructions.
+Follow the Jira To Prompt Skill below.
 
 ==================================================
-JIRA TO PROMPT SKILL
+SKILL
 ==================================================
 
 {skill}
@@ -200,14 +132,7 @@ JIRA TO PROMPT SKILL
 JIRA TICKET
 ==================================================
 
-Key:
-{ticket.get("key")}
-
-Summary:
-{ticket.get("summary")}
-
-Description:
-{ticket.get("description")}
+{ticket}
 
 ==================================================
 TECHNICAL ANALYSIS
@@ -216,61 +141,26 @@ TECHNICAL ANALYSIS
 {analysis}
 
 ==================================================
-OPEN CODE INSTRUCTIONS
+TASK
 ==================================================
 
-The instruction MUST tell OpenCode to:
+Generate the final implementation instruction
+according to the Skill.
 
-1. Inspect the existing project.
-2. Understand the current architecture.
-3. Identify the minimum necessary changes.
-4. Reuse existing components when possible.
-5. Implement the Jira requirement.
-6. Modify only necessary files.
-7. Avoid unrelated refactoring.
-8. Run relevant tests.
-9. Verify the acceptance criteria.
-10. Report the final changes and test results.
-
-Start directly with the implementation instructions.
-
+Return only the final Markdown instruction.
 """
 
-
-    try:
-
-        response = llm.invoke(
-            prompt
-        )
-
-    except Exception as e:
-
-        raise RuntimeError(
-            f"❌ Erreur Ollama pendant "
-            f"la génération du prompt : {e}"
-        )
-
+    response = llm.invoke(prompt)
 
     coding_instruction = str(
         response.content
     ).strip()
 
-
     if not coding_instruction:
-
         raise RuntimeError(
             "❌ Aucune coding instruction générée."
         )
 
-
-    print(
-        "\n✅ Coding instruction générée."
-    )
-
-
     return {
-
-        "coding_instruction":
-            coding_instruction
-
+        "coding_instruction": coding_instruction
     }

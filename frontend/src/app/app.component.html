@@ -98,71 +98,208 @@
 
 
         <!-- ================================================= -->
-        <!-- STATUS -->
+        <!-- ORCHESTRATOR WORKFLOW MAP -->
         <!-- ================================================= -->
 
         <div
-          class="workflow-status"
+          class="workflow-map-container"
           *ngIf="orchestratorStarted"
         >
 
-          <div class="workflow-step">
+          <div class="workflow-map-header">
 
-            <span class="step-number">1</span>
+            <div>
 
-            <span>🔎 Jira Agent</span>
+              <span class="workflow-eyebrow">
+                WORKFLOW ENGINE
+              </span>
 
-            <span *ngIf="orchestratorStep >= 1">
-              ✅
-            </span>
+              <h3>
+                Orchestration Pipeline
+              </h3>
+
+            </div>
+
+            <div
+              class="workflow-global-status"
+              [class.workflow-global-running]="orchestrating"
+              [class.workflow-global-failed]="orchestratorFailed"
+              [class.workflow-global-completed]="orchestratorSuccess"
+            >
+
+              <span
+                class="global-status-dot"
+              ></span>
+
+              <span *ngIf="orchestrating">
+                En cours
+              </span>
+
+              <span
+                *ngIf="!orchestrating && orchestratorFailed"
+              >
+                Échec
+              </span>
+
+              <span
+                *ngIf="
+                  !orchestrating &&
+                  !orchestratorFailed &&
+                  orchestratorSuccess
+                "
+              >
+                Terminé
+              </span>
+
+              <span
+                *ngIf="
+                  !orchestrating &&
+                  !orchestratorFailed &&
+                  !orchestratorSuccess
+                "
+              >
+                Pipeline
+              </span>
+
+            </div>
 
           </div>
 
 
-          <div class="workflow-line"></div>
+          <div class="map-track">
 
-
-          <div class="workflow-step">
-
-            <span class="step-number">2</span>
-
-            <span>🧠 Analysis Agent</span>
-
-            <span *ngIf="orchestratorStep >= 2">
-              ✅
-            </span>
-
-          </div>
-
-
-          <div class="workflow-line"></div>
-
-
-          <div class="workflow-step">
-
-            <span class="step-number">3</span>
-
-            <span>📝 Prompt Agent</span>
-
-            <span *ngIf="orchestratorStep >= 3">
-              ✅
-            </span>
+            <div
+              class="map-track-progress"
+              [style.width.%]="
+                orchestratorStep === 0
+                  ? 0
+                  : orchestratorStep === 1
+                    ? 16
+                    : orchestratorStep === 2
+                      ? 42
+                      : orchestratorStep === 3
+                        ? 68
+                        : 100
+              "
+            ></div>
 
           </div>
 
 
-          <div class="workflow-line"></div>
+          <div class="map-nodes">
+
+            <div
+              class="map-node-wrapper"
+              *ngFor="let step of workflowSteps; let i = index"
+              [class.active]="
+                isOrchestratorStepRunning(step.id)
+              "
+              [class.completed]="
+                isOrchestratorStepCompleted(step.id)
+              "
+              [class.failed]="
+                isOrchestratorStepFailed(step.id)
+              "
+              [class.disabled]="
+                getOrchestratorStepStatus(step.id) === 'idle'
+              "
+            >
+
+              <!-- CONNECTOR -->
+
+              <div
+                class="node-connector"
+                *ngIf="i < workflowSteps.length - 1"
+              >
+
+                <div
+                  class="connector-progress"
+                  [class.connector-completed]="
+                    isOrchestratorStepCompleted(step.id)
+                  "
+                ></div>
+
+              </div>
 
 
-          <div class="workflow-step">
+              <!-- NODE -->
 
-            <span class="step-number">4</span>
+              <div class="node-circle">
 
-            <span>🚀 OpenCode</span>
+                <span
+                  *ngIf="
+                    !isOrchestratorStepRunning(step.id) &&
+                    !isOrchestratorStepCompleted(step.id) &&
+                    !isOrchestratorStepFailed(step.id)
+                  "
+                  class="node-icon"
+                >
+                  {{ step.icon }}
+                </span>
 
-            <span *ngIf="orchestratorStep >= 4">
-              ✅
-            </span>
+
+                <span
+                  *ngIf="
+                    isOrchestratorStepCompleted(step.id)
+                  "
+                  class="node-check"
+                >
+                  ✓
+                </span>
+
+
+                <span
+                  *ngIf="
+                    isOrchestratorStepFailed(step.id)
+                  "
+                  class="node-failed"
+                >
+                  !
+                </span>
+
+
+                <span
+                  *ngIf="
+                    isOrchestratorStepRunning(step.id)
+                  "
+                  class="node-spinner"
+                ></span>
+
+              </div>
+
+
+              <!-- META -->
+
+              <div class="node-meta">
+
+                <span class="node-step">
+                  Étape 0{{ step.id }}
+                </span>
+
+                <span class="node-title">
+                  {{ step.title }}
+                </span>
+
+                <span
+                  class="node-status-badge"
+                  [class.status-running]="
+                    isOrchestratorStepRunning(step.id)
+                  "
+                  [class.status-completed]="
+                    isOrchestratorStepCompleted(step.id)
+                  "
+                  [class.status-failed]="
+                    isOrchestratorStepFailed(step.id)
+                  "
+                >
+
+                  {{ getOrchestratorStatusLabel(step.id) }}
+
+                </span>
+
+              </div>
+
+            </div>
 
           </div>
 
@@ -170,31 +307,96 @@
 
 
         <!-- ================================================= -->
-        <!-- ORCHESTRATOR TICKET -->
+        <!-- ORCHESTRATOR STEP 1 : TICKET -->
         <!-- ================================================= -->
 
         <section
-          class="ticket-card"
+          class="step-card"
           *ngIf="orchestratorTicket"
         >
 
-          <div class="ticket-header">
+          <div class="step-card-header">
 
             <div>
 
-              <span class="ticket-key">
-                {{ orchestratorTicket.key }}
+              <span class="step-badge">
+                STEP 1
               </span>
 
-              <h2>
-                {{ orchestratorTicket.summary }}
-              </h2>
+              <h3>
+                🔎 Ticket Jira
+              </h3>
 
             </div>
 
-            <span class="status">
-              {{ orchestratorTicket.status }}
-            </span>
+          </div>
+
+
+          <div class="step-content">
+
+            <div class="ticket-details">
+
+              <div class="ticket-field">
+                <strong>Key :</strong>
+                <span>{{ orchestratorTicket.key }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Summary :</strong>
+                <span>{{ orchestratorTicket.summary }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Description :</strong>
+                <span>{{ orchestratorTicket.description }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Status :</strong>
+                <span>{{ orchestratorTicket.status }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Priority :</strong>
+                <span>{{ orchestratorTicket.priority }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Issue Type :</strong>
+                <span>{{ orchestratorTicket.issue_type }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Assignee :</strong>
+                <span>
+                  {{ orchestratorTicket.assignee || 'Non assigné' }}
+                </span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Project :</strong>
+                <span>
+                  {{ orchestratorTicket.project?.name || orchestratorTicket.project }}
+                  ({{ orchestratorTicket.project_key }})
+                </span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Reporter :</strong>
+                <span>{{ orchestratorTicket.reporter }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Created :</strong>
+                <span>{{ orchestratorTicket.created }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Updated :</strong>
+                <span>{{ orchestratorTicket.updated }}</span>
+              </div>
+
+            </div>
 
           </div>
 
@@ -202,131 +404,40 @@
 
 
         <!-- ================================================= -->
-        <!-- ORCHESTRATOR ANALYSIS -->
+        <!-- ORCHESTRATOR STEP 2 : ANALYSIS -->
         <!-- ================================================= -->
 
         <section
-          class="analysis-card"
+          class="step-card"
           *ngIf="orchestratorAnalysis"
         >
 
-          <div class="section-header">
-
-            <div class="section-icon">
-              🧠
-            </div>
-
-            <h2>
-              Agent 2 — Analysis
-            </h2>
-
-          </div>
-
-          <pre>
-{{ orchestratorAnalysis }}
-          </pre>
-
-        </section>
-
-
-        <!-- ================================================= -->
-        <!-- ORCHESTRATOR PROMPT -->
-        <!-- ================================================= -->
-
-        <section
-          class="prompt-card"
-          *ngIf="orchestratorPrompt"
-        >
-
-          <div class="section-header">
-
-            <div class="section-icon">
-              📝
-            </div>
+          <div class="step-card-header">
 
             <div>
 
-              <h2>
-                Agent 3 — Generated Prompt
-              </h2>
+              <span class="step-badge">
+                STEP 2
+              </span>
 
-              <p>
-                Coding instruction for OpenCode
-              </p>
+              <h3>
+                🧠 Analyse
+              </h3>
 
             </div>
 
           </div>
 
 
-          <div class="prompt-content">
+          <div class="step-content">
 
-            <pre *ngIf="!orchestratorEditing">
-{{ orchestratorPrompt }}
-            </pre>
+            <div class="markdown-content">
 
+              <div
+                [innerHTML]="renderMarkdown(orchestratorAnalysis)"
+              ></div>
 
-            <textarea
-              *ngIf="orchestratorEditing"
-              [(ngModel)]="orchestratorPrompt"
-              class="prompt-editor"
-              rows="15"
-            ></textarea>
-
-          </div>
-
-
-          <div class="prompt-actions">
-
-            <!-- MODIFIER -->
-
-            <button
-              *ngIf="!orchestratorEditing"
-              type="button"
-              (click)="editOrchestratorPrompt()"
-              [disabled]="orchestrating"
-            >
-              ✏️ Modifier
-            </button>
-
-
-            <!-- EXECUTER -->
-
-            <button
-              *ngIf="!orchestratorEditing"
-              type="button"
-              class="execute-button"
-              (click)="executeOrchestratorPrompt()"
-              [disabled]="orchestrating"
-            >
-              ▶️ Exécuter
-            </button>
-
-
-            <!-- ENREGISTRER -->
-
-            <button
-              *ngIf="orchestratorEditing"
-              type="button"
-              class="execute-button"
-              (click)="saveAndExecuteOrchestrator()"
-              [disabled]="orchestrating"
-            >
-              💾 Enregistrer & Exécuter
-            </button>
-
-
-            <!-- IGNORER -->
-
-            <button
-              *ngIf="orchestratorEditing"
-              type="button"
-              class="cancel-button"
-              (click)="ignoreOrchestratorPrompt()"
-              [disabled]="orchestrating"
-            >
-              ↩️ Ignorer
-            </button>
+            </div>
 
           </div>
 
@@ -334,31 +445,141 @@
 
 
         <!-- ================================================= -->
-        <!-- ORCHESTRATOR RESULT -->
+        <!-- ORCHESTRATOR STEP 3 : PROMPT -->
         <!-- ================================================= -->
 
         <section
-          class="opencode-result-card"
-          *ngIf="orchestratorResult"
+          class="step-card"
+          *ngIf="orchestratorPrompt"
         >
 
-          <div class="section-header">
+          <div class="step-card-header">
 
-            <div class="section-icon">
-              🚀
+            <div>
+
+              <span class="step-badge">
+                STEP 3
+              </span>
+
+              <h3>
+                📝 Prompt
+              </h3>
+
             </div>
-
-            <h2>
-              Agent 4 — OpenCode
-            </h2>
 
           </div>
 
-          <pre>
-{{ orchestratorResult }}
-          </pre>
+
+          <div class="step-content">
+
+            <div class="prompt-content">
+
+              <div
+                *ngIf="!orchestratorEditing"
+                class="markdown-content"
+                [innerHTML]="renderMarkdown(orchestratorPrompt)"
+              ></div>
+
+
+              <textarea
+                *ngIf="orchestratorEditing"
+                [(ngModel)]="orchestratorPrompt"
+                class="prompt-editor"
+                rows="15"
+              ></textarea>
+
+            </div>
+
+
+            <div class="prompt-actions">
+
+              <button
+                *ngIf="!orchestratorEditing"
+                type="button"
+                (click)="editOrchestratorPrompt()"
+                [disabled]="orchestrating"
+              >
+                ✏️ Modifier
+              </button>
+
+
+              <button
+                *ngIf="!orchestratorEditing"
+                type="button"
+                class="execute-button"
+                (click)="executeOrchestratorPrompt()"
+                [disabled]="orchestrating"
+              >
+                ▶️ Exécuter
+              </button>
+
+
+              <button
+                *ngIf="orchestratorEditing"
+                type="button"
+                class="execute-button"
+                (click)="saveAndExecuteOrchestrator()"
+                [disabled]="orchestrating"
+              >
+                💾 Enregistrer & Exécuter
+              </button>
+
+
+              <button
+                *ngIf="orchestratorEditing"
+                type="button"
+                class="cancel-button"
+                (click)="ignoreOrchestratorPrompt()"
+                [disabled]="orchestrating"
+              >
+                ↩️ Ignorer
+              </button>
+
+            </div>
+
+          </div>
 
         </section>
+
+
+        <!-- ================================================= -->
+        <!-- ORCHESTRATOR STEP 4 : OPENCODE -->
+        <!-- ================================================= -->
+
+        <section
+          class="step-card"
+          *ngIf="orchestratorResult"
+        >
+
+          <div class="step-card-header">
+
+            <div>
+
+              <span class="step-badge">
+                STEP 4
+              </span>
+
+              <h3>
+                🚀 OpenCode
+              </h3>
+
+            </div>
+
+          </div>
+
+
+          <div class="step-content">
+
+            <div class="opencode-result">
+
+              <pre>{{ orchestratorResult }}</pre>
+
+            </div>
+
+          </div>
+
+        </section>
+
 
       </section>
 
@@ -431,6 +652,204 @@
 
 
         <!-- ================================================= -->
+        <!-- STEP BY STEP WORKFLOW MAP -->
+        <!-- ================================================= -->
+
+        <div
+          class="workflow-map-container"
+          *ngIf="stepTicket"
+        >
+
+          <div class="workflow-map-header">
+
+            <div>
+
+              <span class="workflow-eyebrow">
+                MANUAL WORKFLOW
+              </span>
+
+              <h3>
+                Step-by-Step Pipeline
+              </h3>
+
+            </div>
+
+            <div
+              class="workflow-global-status"
+              [class.workflow-global-running]="stepLoading"
+              [class.workflow-global-failed]="stepFailed"
+              [class.workflow-global-completed]="stepSuccess"
+            >
+
+              <span class="global-status-dot"></span>
+
+              <span *ngIf="stepLoading">
+                En cours
+              </span>
+
+              <span
+                *ngIf="
+                  !stepLoading &&
+                  stepFailed
+                "
+              >
+                Échec
+              </span>
+
+              <span
+                *ngIf="
+                  !stepLoading &&
+                  !stepFailed &&
+                  stepSuccess
+                "
+              >
+                Terminé
+              </span>
+
+              <span
+                *ngIf="
+                  !stepLoading &&
+                  !stepFailed &&
+                  !stepSuccess
+                "
+              >
+                Workflow
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="map-track">
+
+            <div
+              class="map-track-progress"
+              [style.width.%]="
+                stepSuccess
+                  ? 100
+                  : stepPrompt
+                    ? 68
+                    : stepAnalysis
+                      ? 42
+                      : stepTicket
+                        ? 16
+                        : 0
+              "
+            ></div>
+
+          </div>
+
+
+          <div class="map-nodes">
+
+            <div
+              class="map-node-wrapper"
+              *ngFor="let step of workflowSteps; let i = index"
+              [class.active]="
+                isStepRunning(step.id)
+              "
+              [class.completed]="
+                isStepCompleted(step.id)
+              "
+              [class.failed]="
+                isStepFailed(step.id)
+              "
+              [class.disabled]="
+                getStepByStepStatus(step.id) === 'idle'
+              "
+            >
+
+              <div
+                class="node-connector"
+                *ngIf="i < workflowSteps.length - 1"
+              >
+
+                <div
+                  class="connector-progress"
+                  [class.connector-completed]="
+                    isStepCompleted(step.id)
+                  "
+                ></div>
+
+              </div>
+
+
+              <div class="node-circle">
+
+                <span
+                  *ngIf="
+                    !isStepRunning(step.id) &&
+                    !isStepCompleted(step.id) &&
+                    !isStepFailed(step.id)
+                  "
+                  class="node-icon"
+                >
+                  {{ step.icon }}
+                </span>
+
+
+                <span
+                  *ngIf="isStepCompleted(step.id)"
+                  class="node-check"
+                >
+                  ✓
+                </span>
+
+
+                <span
+                  *ngIf="isStepFailed(step.id)"
+                  class="node-failed"
+                >
+                  !
+                </span>
+
+
+                <span
+                  *ngIf="isStepRunning(step.id)"
+                  class="node-spinner"
+                ></span>
+
+              </div>
+
+
+              <div class="node-meta">
+
+                <span class="node-step">
+                  Étape 0{{ step.id }}
+                </span>
+
+                <span class="node-title">
+                  {{ step.title }}
+                </span>
+
+                <span
+                  class="node-status-badge"
+                  [class.status-running]="
+                    isStepRunning(step.id)
+                  "
+                  [class.status-completed]="
+                    isStepCompleted(step.id)
+                  "
+                  [class.status-failed]="
+                    isStepFailed(step.id)
+                  "
+                >
+
+                  {{ getStepByStepStatusLabel(step.id) }}
+
+                </span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ================================================= -->
         <!-- STEP 1 : TICKET -->
         <!-- ================================================= -->
 
@@ -454,8 +873,6 @@
             </div>
 
 
-            <!-- MODIFIER -->
-
             <button
               type="button"
               *ngIf="!stepTicketEditing"
@@ -464,8 +881,6 @@
               ✏️ Modifier
             </button>
 
-
-            <!-- ENREGISTRER -->
 
             <button
               type="button"
@@ -476,8 +891,6 @@
               💾 Enregistrer
             </button>
 
-
-            <!-- IGNORER -->
 
             <button
               type="button"
@@ -491,10 +904,6 @@
           </div>
 
 
-          <!-- ============================= -->
-          <!-- AFFICHAGE -->
-          <!-- ============================= -->
-
           <div
             class="step-content"
             *ngIf="!stepTicketEditing"
@@ -502,120 +911,72 @@
 
             <div class="ticket-details">
 
-
               <div class="ticket-field">
-
-                <strong>
-                  Key
-                </strong>
-
-                <span>
-                  {{ stepTicket.key }}
-                </span>
-
+                <strong>Key :</strong>
+                <span>{{ stepTicket.key }}</span>
               </div>
 
-
               <div class="ticket-field">
-
-                <strong>
-                  Summary
-                </strong>
-
-                <span>
-                  {{ stepTicket.summary }}
-                </span>
-
+                <strong>Summary :</strong>
+                <span>{{ stepTicket.summary }}</span>
               </div>
 
-
               <div class="ticket-field">
-
-                <strong>
-                  Description
-                </strong>
-
-                <span>
-                  {{ stepTicket.description }}
-                </span>
-
+                <strong>Description :</strong>
+                <span>{{ stepTicket.description }}</span>
               </div>
 
-
               <div class="ticket-field">
-
-                <strong>
-                  Status
-                </strong>
-
-                <span>
-                  {{ stepTicket.status }}
-                </span>
-
+                <strong>Status :</strong>
+                <span>{{ stepTicket.status }}</span>
               </div>
 
-
               <div class="ticket-field">
-
-                <strong>
-                  Priority
-                </strong>
-
-                <span>
-                  {{ stepTicket.priority }}
-                </span>
-
+                <strong>Priority :</strong>
+                <span>{{ stepTicket.priority }}</span>
               </div>
 
-
               <div class="ticket-field">
-
-                <strong>
-                  Issue Type
-                </strong>
-
-                <span>
-                  {{ stepTicket.issue_type }}
-                </span>
-
+                <strong>Issue Type :</strong>
+                <span>{{ stepTicket.issue_type }}</span>
               </div>
 
-
               <div class="ticket-field">
-
-                <strong>
-                  Assignee
-                </strong>
-
+                <strong>Assignee :</strong>
                 <span>
-                  {{ stepTicket.assignee }}
+                  {{ stepTicket.assignee || 'Non assigné' }}
                 </span>
-
               </div>
 
-
               <div class="ticket-field">
-
-                <strong>
-                  Project
-                </strong>
-
+                <strong>Project :</strong>
                 <span>
-                  {{ stepTicket.project?.name }}
-                  ({{ stepTicket.project?.key }})
+                  {{ stepTicket.project }}
+                  ({{ stepTicket.project_key }})
                 </span>
-
               </div>
 
+              <div class="ticket-field">
+                <strong>Reporter :</strong>
+                <span>{{ stepTicket.reporter }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Created :</strong>
+                <span>{{ stepTicket.created }}</span>
+              </div>
+
+              <div class="ticket-field">
+                <strong>Updated :</strong>
+                <span>{{ stepTicket.updated }}</span>
+              </div>
 
             </div>
 
           </div>
 
 
-          <!-- ============================= -->
-          <!-- MODIFICATION -->
-          <!-- ============================= -->
+          <!-- MODIFICATION TICKET -->
 
           <div
             class="step-content"
@@ -624,10 +985,7 @@
 
             <div class="edit-form">
 
-
-              <label>
-                Key
-              </label>
+              <label>Key</label>
 
               <input
                 type="text"
@@ -635,9 +993,7 @@
               />
 
 
-              <label>
-                Summary
-              </label>
+              <label>Summary</label>
 
               <input
                 type="text"
@@ -645,9 +1001,7 @@
               />
 
 
-              <label>
-                Description
-              </label>
+              <label>Description</label>
 
               <textarea
                 [(ngModel)]="stepTicket.description"
@@ -655,9 +1009,7 @@
               ></textarea>
 
 
-              <label>
-                Status
-              </label>
+              <label>Status</label>
 
               <input
                 type="text"
@@ -665,9 +1017,7 @@
               />
 
 
-              <label>
-                Priority
-              </label>
+              <label>Priority</label>
 
               <input
                 type="text"
@@ -675,9 +1025,7 @@
               />
 
 
-              <label>
-                Issue Type
-              </label>
+              <label>Issue Type</label>
 
               <input
                 type="text"
@@ -685,9 +1033,7 @@
               />
 
 
-              <label>
-                Assignee
-              </label>
+              <label>Assignee</label>
 
               <input
                 type="text"
@@ -695,16 +1041,49 @@
               />
 
 
-              <label>
-                Project
-              </label>
+              <label>Project</label>
 
               <input
                 type="text"
-                [value]="stepTicket.project?.name"
+                [value]="stepTicket.project"
                 disabled
               />
 
+
+              <label>Project Key</label>
+
+              <input
+                type="text"
+                [value]="stepTicket.project_key"
+                disabled
+              />
+
+
+              <label>Reporter</label>
+
+              <input
+                type="text"
+                [value]="stepTicket.reporter"
+                disabled
+              />
+
+
+              <label>Created</label>
+
+              <input
+                type="text"
+                [value]="stepTicket.created"
+                disabled
+              />
+
+
+              <label>Updated</label>
+
+              <input
+                type="text"
+                [value]="stepTicket.updated"
+                disabled
+              />
 
             </div>
 
@@ -737,8 +1116,6 @@
             </div>
 
 
-            <!-- ANALYSER -->
-
             <button
               type="button"
               (click)="analyzeTicket()"
@@ -749,8 +1126,6 @@
             </button>
 
 
-            <!-- MODIFIER -->
-
             <button
               type="button"
               *ngIf="stepAnalysis && !stepAnalysisEditing"
@@ -759,8 +1134,6 @@
               ✏️ Modifier
             </button>
 
-
-            <!-- ENREGISTRER -->
 
             <button
               type="button"
@@ -771,8 +1144,6 @@
               💾 Enregistrer
             </button>
 
-
-            <!-- IGNORER -->
 
             <button
               type="button"
@@ -786,21 +1157,18 @@
           </div>
 
 
-          <!-- AFFICHAGE -->
-
           <div
             class="step-content"
             *ngIf="stepAnalysis && !stepAnalysisEditing"
           >
 
-            <pre>
-{{ stepAnalysis }}
-            </pre>
+            <div
+              class="markdown-content"
+              [innerHTML]="renderMarkdown(stepAnalysis)"
+            ></div>
 
           </div>
 
-
-          <!-- MODIFICATION -->
 
           <div
             class="step-content"
@@ -842,8 +1210,6 @@
             </div>
 
 
-            <!-- GENERER -->
-
             <button
               type="button"
               (click)="generateStepPrompt()"
@@ -854,8 +1220,6 @@
             </button>
 
 
-            <!-- MODIFIER -->
-
             <button
               type="button"
               *ngIf="stepPrompt && !stepPromptEditing"
@@ -864,8 +1228,6 @@
               ✏️ Modifier
             </button>
 
-
-            <!-- ENREGISTRER -->
 
             <button
               type="button"
@@ -876,8 +1238,6 @@
               💾 Enregistrer
             </button>
 
-
-            <!-- IGNORER -->
 
             <button
               type="button"
@@ -891,21 +1251,18 @@
           </div>
 
 
-          <!-- AFFICHAGE -->
-
           <div
             class="step-content"
             *ngIf="stepPrompt && !stepPromptEditing"
           >
 
-            <pre>
-{{ stepPrompt }}
-            </pre>
+            <div
+              class="markdown-content"
+              [innerHTML]="renderMarkdown(stepPrompt)"
+            ></div>
 
           </div>
 
-
-          <!-- MODIFICATION -->
 
           <div
             class="step-content"
@@ -963,8 +1320,6 @@
           </div>
 
 
-          <!-- RESULT -->
-
           <div
             class="step-content"
             *ngIf="stepResult"
@@ -974,9 +1329,7 @@
               📋 Résultat OpenCode
             </h4>
 
-            <pre>
-{{ stepResult }}
-            </pre>
+            <pre>{{ stepResult }}</pre>
 
           </div>
 
@@ -985,7 +1338,9 @@
             class="success-message"
             *ngIf="stepSuccess"
           >
+
             ✅ OpenCode terminé avec succès.
+
           </div>
 
         </section>
@@ -999,8 +1354,13 @@
           class="loading"
           *ngIf="stepLoading"
         >
-          🔄 Traitement de l'étape...
+
+          <span class="loading-spinner"></span>
+
+          Traitement de l'étape...
+
         </div>
+
 
       </section>
 

@@ -1,6 +1,6 @@
 """ récupérer le ticket Jira et le mettre dans le State. """
-
-
+""" Ce fichier contient un Node LangGraph, mais pas le Graph complet.
+ """
 import os
 import base64
 import requests

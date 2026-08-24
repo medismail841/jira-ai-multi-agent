@@ -2,12 +2,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from agents.jira_agent import (
+""" from agents.jira_agent import (
     get_jira_issue,
     format_ticket,
   
-)
-
+) """
+from agents.jira_agent_vf import jira_agent_vf
 from agents.analysis_agent import (
     analysis_agent
 )
@@ -81,6 +81,55 @@ def root():
 # ============================================================
 
 @app.get("/api/jira/{issue_key}")
+async def get_jira_ticket(issue_key: str):
+
+    try:
+
+        issue_key = (
+            issue_key
+            .strip()
+            .upper()
+        )
+
+        print("\n" + "=" * 60)
+        print("🔎 STEP 1 — JIRA MCP AGENT")
+        print("=" * 60)
+
+        print(f"Ticket : {issue_key}")
+
+       # ====================================================
+        # STATE
+        # ====================================================
+
+        state = {
+            "issue_key": issue_key
+        }
+
+        # ====================================================
+        # JIRA AGENT
+        # ====================================================
+
+        result = await jira_agent_vf(
+            state
+        )
+
+
+        return result["ticket"]
+
+    except Exception as e:
+
+        print(
+            f"\n❌ Erreur Jira : {e}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+""" 
+@app.get("/api/jira/{issue_key}")
 def get_jira_ticket(issue_key: str):
 
     try:
@@ -137,7 +186,7 @@ def get_jira_ticket(issue_key: str):
             detail=str(e)
         )
 
-
+ """
 # ============================================================
 # REQUEST MODEL — ANALYSIS
 # ============================================================
@@ -506,9 +555,8 @@ def execute_opencode(
 #
 # OpenCode NON exécuté
 # ============================================================
-
 @app.get("/api/agents/{issue_key}")
-def run_agents(issue_key: str):
+async def run_agents(issue_key: str):
 
     try:
 
@@ -523,9 +571,7 @@ def run_agents(issue_key: str):
             + "=" * 60
         )
 
-        print(
-            "🤖 ORCHESTRATOR"
-        )
+        print("🤖 ORCHESTRATOR")
 
         print(
             "=" * 60
@@ -536,7 +582,7 @@ def run_agents(issue_key: str):
         )
 
         # ----------------------------------------------------
-        # Build orchestrator
+        # Build workflow
         # ----------------------------------------------------
 
         workflow = build_prompt_graph()
@@ -546,19 +592,20 @@ def run_agents(issue_key: str):
         # ----------------------------------------------------
 
         initial_state = {
-
-            "issue_key":
-                issue_key
-
+            "issue_key": issue_key
         }
 
         # ----------------------------------------------------
-        # Agent 1 → Agent 2 → Agent 3
+        # Execute async workflow
         # ----------------------------------------------------
 
-        result = workflow.invoke(
+        result = await workflow.ainvoke(
             initial_state
         )
+
+        # ----------------------------------------------------
+        # Get result
+        # ----------------------------------------------------
 
         prompt = result.get(
             "coding_instruction"
@@ -599,7 +646,6 @@ def run_agents(issue_key: str):
 
             "prompt":
                 prompt
-
         }
 
     except Exception as e:

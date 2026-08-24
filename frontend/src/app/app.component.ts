@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { marked } from 'marked';
 
 @Component({
   selector: 'app-root',
@@ -20,6 +21,56 @@ export class AppComponent {
   // ============================================================
 
   errorMessage: string = '';
+
+
+  renderMarkdown(markdown: string): string {
+
+    if (!markdown) {
+      return '';
+    }
+
+    return marked.parse(markdown) as string;
+  }
+
+
+  // ============================================================
+  // WORKFLOW STATES
+  // ============================================================
+
+  /*
+   * 0 = aucun workflow démarré
+   * 1 = Jira / Ticket
+   * 2 = Analysis
+   * 3 = Prompt
+   * 4 = OpenCode
+   */
+
+  readonly workflowSteps = [
+    {
+      id: 1,
+      title: 'Jira Agent',
+      shortTitle: 'Ticket',
+      icon: '🔎'
+    },
+    {
+      id: 2,
+      title: 'Analysis Agent',
+      shortTitle: 'Analyse',
+      icon: '🧠'
+    },
+    {
+      id: 3,
+      title: 'Prompt Agent',
+      shortTitle: 'Prompt',
+      icon: '📝'
+    },
+    {
+      id: 4,
+      title: 'OpenCode',
+      shortTitle: 'Execution',
+      icon: '🚀'
+    }
+  ];
 
 
   // ============================================================
@@ -46,6 +97,14 @@ export class AppComponent {
 
   orchestratorSuccess: boolean = false;
 
+  /*
+   * Permet d'afficher un état FAILED dans la map
+   * sans modifier la logique métier existante.
+   */
+  orchestratorFailed: boolean = false;
+
+  orchestratorFailedStep: number = 0;
+
 
   // ============================================================
   // STEP BY STEP
@@ -64,6 +123,10 @@ export class AppComponent {
   stepResult: string = '';
 
   stepSuccess: boolean = false;
+
+  stepFailed: boolean = false;
+
+  stepFailedStep: number = 0;
 
 
   // ============================================================
@@ -109,6 +172,225 @@ export class AppComponent {
 
 
   // ============================================================
+  // ORCHESTRATOR MAP
+  // ============================================================
+
+  getOrchestratorStepStatus(stepId: number): string {
+
+    if (this.orchestratorFailed && this.orchestratorFailedStep === stepId) {
+      return 'failed';
+    }
+
+    if (this.orchestratorStep > stepId) {
+      return 'completed';
+    }
+
+    if (this.orchestratorStep === stepId && this.orchestrating) {
+      return 'running';
+    }
+
+    /*
+     * Lorsque le workflow est terminé et que l'étape 4 est atteinte.
+     */
+    if (
+      stepId === 4 &&
+      this.orchestratorStep === 4 &&
+      this.orchestratorSuccess
+    ) {
+      return 'completed';
+    }
+
+    if (
+      this.orchestratorStep === stepId &&
+      !this.orchestrating
+    ) {
+      return 'completed';
+    }
+
+    return 'idle';
+  }
+
+
+  getOrchestratorStatusLabel(stepId: number): string {
+
+    const status = this.getOrchestratorStepStatus(stepId);
+
+    switch (status) {
+
+      case 'running':
+        return 'En cours';
+
+      case 'completed':
+        return 'Terminé';
+
+      case 'failed':
+        return 'Échec';
+
+      default:
+        return 'En attente';
+    }
+  }
+
+
+  isOrchestratorStepCompleted(stepId: number): boolean {
+
+    return (
+      this.getOrchestratorStepStatus(stepId) === 'completed'
+    );
+  }
+
+
+  isOrchestratorStepRunning(stepId: number): boolean {
+
+    return (
+      this.getOrchestratorStepStatus(stepId) === 'running'
+    );
+  }
+
+
+  isOrchestratorStepFailed(stepId: number): boolean {
+
+    return (
+      this.getOrchestratorStepStatus(stepId) === 'failed'
+    );
+  }
+
+
+  // ============================================================
+  // STEP BY STEP MAP
+  // ============================================================
+
+  getStepByStepStatus(stepId: number): string {
+
+    if (
+      this.stepFailed &&
+      this.stepFailedStep === stepId
+    ) {
+      return 'failed';
+    }
+
+
+    if (stepId === 1) {
+
+      if (this.stepTicket) {
+        return 'completed';
+      }
+
+      if (
+        this.stepLoading &&
+        !this.stepTicket
+      ) {
+        return 'running';
+      }
+
+      return 'idle';
+    }
+
+
+    if (stepId === 2) {
+
+      if (this.stepAnalysis) {
+        return 'completed';
+      }
+
+      if (
+        this.stepLoading &&
+        this.stepTicket &&
+        !this.stepAnalysis
+      ) {
+        return 'running';
+      }
+
+      return 'idle';
+    }
+
+
+    if (stepId === 3) {
+
+      if (this.stepPrompt) {
+        return 'completed';
+      }
+
+      if (
+        this.stepLoading &&
+        this.stepAnalysis &&
+        !this.stepPrompt
+      ) {
+        return 'running';
+      }
+
+      return 'idle';
+    }
+
+
+    if (stepId === 4) {
+
+      if (this.stepSuccess) {
+        return 'completed';
+      }
+
+      if (
+        this.stepLoading &&
+        this.stepPrompt &&
+        !this.stepResult
+      ) {
+        return 'running';
+      }
+
+      return 'idle';
+    }
+
+
+    return 'idle';
+  }
+
+
+  getStepByStepStatusLabel(stepId: number): string {
+
+    const status = this.getStepByStepStatus(stepId);
+
+    switch (status) {
+
+      case 'running':
+        return 'En cours';
+
+      case 'completed':
+        return 'Terminé';
+
+      case 'failed':
+        return 'Échec';
+
+      default:
+        return 'En attente';
+    }
+  }
+
+
+  isStepCompleted(stepId: number): boolean {
+
+    return (
+      this.getStepByStepStatus(stepId) === 'completed'
+    );
+  }
+
+
+  isStepRunning(stepId: number): boolean {
+
+    return (
+      this.getStepByStepStatus(stepId) === 'running'
+    );
+  }
+
+
+  isStepFailed(stepId: number): boolean {
+
+    return (
+      this.getStepByStepStatus(stepId) === 'failed'
+    );
+  }
+
+
+  // ============================================================
   // ORCHESTRATOR
   // ============================================================
 
@@ -133,7 +415,7 @@ export class AppComponent {
 
     this.orchestratorStarted = true;
 
-    this.orchestratorStep = 0;
+    this.orchestratorStep = 1;
 
     this.orchestratorTicket = null;
 
@@ -146,6 +428,10 @@ export class AppComponent {
     this.orchestratorResult = '';
 
     this.orchestratorSuccess = false;
+
+    this.orchestratorFailed = false;
+
+    this.orchestratorFailedStep = 0;
 
     this.errorMessage = '';
 
@@ -170,28 +456,49 @@ export class AppComponent {
         );
 
 
+        // ======================================================
         // STEP 1
+        // ======================================================
+
         this.orchestratorStep = 1;
 
         this.orchestratorTicket =
           response.ticket;
 
 
-        // STEP 2
-        this.orchestratorStep = 2;
+        /*
+         * Petit délai visuel pour laisser la map
+         * montrer la progression étape par étape.
+         */
+        setTimeout(() => {
 
-        this.orchestratorAnalysis =
-          response.analysis;
+          // ====================================================
+          // STEP 2
+          // ====================================================
+
+          this.orchestratorStep = 2;
+
+          this.orchestratorAnalysis =
+            response.analysis;
 
 
-        // STEP 3
-        this.orchestratorStep = 3;
+          setTimeout(() => {
 
-        this.orchestratorPrompt =
-          response.prompt;
+            // ==================================================
+            // STEP 3
+            // ==================================================
+
+            this.orchestratorStep = 3;
+
+            this.orchestratorPrompt =
+              response.prompt;
 
 
-        this.orchestrating = false;
+            this.orchestrating = false;
+
+          }, 350);
+
+        }, 350);
 
       },
 
@@ -206,9 +513,16 @@ export class AppComponent {
 
         this.orchestrating = false;
 
-        this.orchestratorStarted = false;
+        /*
+         * On conserve la map visible pour afficher
+         * l'état FAILED.
+         */
+        this.orchestratorStarted = true;
 
-        this.orchestratorStep = 0;
+        this.orchestratorFailed = true;
+
+        this.orchestratorFailedStep =
+          this.orchestratorStep || 1;
 
         this.orchestratorTicket = null;
 
@@ -307,6 +621,12 @@ export class AppComponent {
 
     this.orchestratorSuccess = false;
 
+    this.orchestratorFailed = false;
+
+    this.orchestratorFailedStep = 0;
+
+    this.orchestratorStep = 4;
+
 
     const body = {
 
@@ -347,6 +667,15 @@ export class AppComponent {
 
         this.orchestrating = false;
 
+
+        if (!this.orchestratorSuccess) {
+
+          this.orchestratorFailed = true;
+
+          this.orchestratorFailedStep = 4;
+
+        }
+
       },
 
 
@@ -363,6 +692,10 @@ export class AppComponent {
         this.orchestratorSuccess = false;
 
         this.orchestratorResult = '';
+
+        this.orchestratorFailed = true;
+
+        this.orchestratorFailedStep = 4;
 
 
         this.errorMessage =
@@ -461,6 +794,10 @@ export class AppComponent {
 
     this.stepSuccess = false;
 
+    this.stepFailed = false;
+
+    this.stepFailedStep = 0;
+
 
     this.stepTicketEditing = false;
 
@@ -515,6 +852,10 @@ export class AppComponent {
 
         this.stepTicket = null;
 
+        this.stepFailed = true;
+
+        this.stepFailedStep = 1;
+
 
         this.errorMessage =
           error?.error?.detail ||
@@ -539,7 +880,6 @@ export class AppComponent {
     }
 
 
-    // Sauvegarder l'état actuel avant modification
     this.stepTicketBackup =
       JSON.parse(
         JSON.stringify(this.stepTicket)
@@ -635,6 +975,10 @@ export class AppComponent {
 
     this.stepResult = '';
 
+    this.stepFailed = false;
+
+    this.stepFailedStep = 0;
+
 
     this.stepPromptEditing = false;
 
@@ -694,6 +1038,10 @@ export class AppComponent {
 
         this.stepLoading = false;
 
+        this.stepFailed = true;
+
+        this.stepFailedStep = 2;
+
 
         this.errorMessage =
           error?.error?.detail ||
@@ -718,7 +1066,6 @@ export class AppComponent {
     }
 
 
-    // Sauvegarder avant modification
     this.stepAnalysisBackup =
       this.stepAnalysis;
 
@@ -813,6 +1160,13 @@ export class AppComponent {
 
     this.stepResult = '';
 
+    this.stepFailed = false;
+
+    this.stepFailedStep = 0;
+
+
+    this.stepPromptEditing = false;
+
 
     const body = {
 
@@ -871,6 +1225,10 @@ export class AppComponent {
 
         this.stepLoading = false;
 
+        this.stepFailed = true;
+
+        this.stepFailedStep = 3;
+
 
         this.errorMessage =
           error?.error?.detail ||
@@ -895,7 +1253,6 @@ export class AppComponent {
     }
 
 
-    // Sauvegarder avant modification
     this.stepPromptBackup =
       this.stepPrompt;
 
@@ -988,7 +1345,6 @@ export class AppComponent {
     }
 
 
-    // Empêcher l'exécution pendant modification
     if (this.stepPromptEditing) {
 
       this.errorMessage =
@@ -1005,6 +1361,10 @@ export class AppComponent {
     this.stepResult = '';
 
     this.stepSuccess = false;
+
+    this.stepFailed = false;
+
+    this.stepFailedStep = 0;
 
 
     const body = {
@@ -1053,6 +1413,15 @@ export class AppComponent {
 
         this.stepLoading = false;
 
+
+        if (!this.stepSuccess) {
+
+          this.stepFailed = true;
+
+          this.stepFailedStep = 4;
+
+        }
+
       },
 
 
@@ -1069,6 +1438,10 @@ export class AppComponent {
         this.stepSuccess = false;
 
         this.stepResult = '';
+
+        this.stepFailed = true;
+
+        this.stepFailedStep = 4;
 
 
         this.errorMessage =
