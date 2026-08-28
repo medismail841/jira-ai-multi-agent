@@ -21,7 +21,6 @@ from graph.workflow import (
     build_opencode_graph
 )
 
-
 # ============================================================
 # FASTAPI
 # ============================================================
@@ -523,9 +522,34 @@ def execute_opencode(
             "return_code":
                 result.get(
                     "opencode_return_code"
-                )
+                ),
 
-        }
+        # ========================================================
+    # PROJECT COLLECTOR
+    # ========================================================
+
+               "project_dir":
+        result.get(
+            "project_dir"
+        ),
+
+    "project_files_count":
+        len(
+            result.get(
+                "project_files",
+                {}
+            )
+        ),
+
+    "project_files":
+        list(
+            result.get(
+                "project_files",
+                {}
+            ).keys()
+        )
+
+}
 
     except Exception as e:
 
@@ -658,3 +682,6 @@ async def run_agents(issue_key: str):
             status_code=500,
             detail=str(e)
         )
+        
+        
+  

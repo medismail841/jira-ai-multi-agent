@@ -64,7 +64,6 @@ if not os.path.isdir(
 
     )
 
-
 # ============================================================
 # FIND OPENCODE
 # ============================================================
@@ -225,17 +224,17 @@ def opencode_agent(
     # ========================================================
 
     opencode_message = (
-
-        "Read the attached Jira coding instruction "
-        "and implement it in the current project. "
-        "First inspect the project. "
-        "Then make the necessary changes. "
-        "Run the relevant tests or commands. "
-        "Verify the acceptance criteria. "
-        "Do not create another prompt or PRD. "
-        "Execute the task directly and report the results."
-
-    )
+    "Read the attached Jira coding instruction "
+    "and implement it in the current project. "
+    "First inspect the project. "
+    "Then make the necessary changes. "
+    "IMPORTANT: All main implementation code must be written directly inside `main.py` " # <-- Contrainte stricte
+    "unless explicitly instructed otherwise in the prompt file. "
+    "Run the relevant tests or commands. "
+    "Verify the acceptance criteria. "
+    "Do not create unnecessary extra files. "
+    "Execute the task directly and report the results."
+)
 
 
     # ========================================================
