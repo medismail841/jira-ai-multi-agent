@@ -1,25 +1,29 @@
+# ============================================================
+# FASTAPI — JIRA AI MULTI-AGENT API
+# ============================================================
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-""" from agents.jira_agent import (
-    get_jira_issue,
-    format_ticket,
-  
-) """
-from agents.jira_agent_vf import jira_agent_vf
-from agents.analysis_agent import (
-    analysis_agent
-)
+# ============================================================
+# AGENTS
+# ============================================================
 
-from agents.prompt_agent import (
-    prompt_agent
-)
+from agents.jira_agent_vf import jira_agent_vf
+from agents.analysis_agent import analysis_agent
+from agents.prompt_agent import prompt_agent
+
+# ============================================================
+# LANGGRAPH WORKFLOWS
+# ============================================================
 
 from graph.workflow import (
     build_prompt_graph,
-    build_opencode_graph
+    build_opencode_graph,
+    build_git_graph,
 )
+
 
 # ============================================================
 # FASTAPI
@@ -28,7 +32,7 @@ from graph.workflow import (
 app = FastAPI(
     title="Jira AI Multi-Agent API",
     description="Jira AI Multi-Agent System",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 
@@ -38,15 +42,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-
     allow_origins=[
-        "http://localhost:4200"
+        "http://localhost:4200",
     ],
-
     allow_credentials=True,
-
     allow_methods=["*"],
-
     allow_headers=["*"],
 )
 
@@ -60,7 +60,7 @@ def root():
 
     return {
         "message": "Jira AI Multi-Agent API",
-        "status": "running"
+        "status": "running",
     }
 
 
@@ -90,13 +90,24 @@ async def get_jira_ticket(issue_key: str):
             .upper()
         )
 
-        print("\n" + "=" * 60)
-        print("🔎 STEP 1 — JIRA MCP AGENT")
-        print("=" * 60)
+        print(
+            "\n"
+            + "=" * 60
+        )
 
-        print(f"Ticket : {issue_key}")
+        print(
+            "🔎 STEP 1 — JIRA MCP AGENT"
+        )
 
-       # ====================================================
+        print(
+            "=" * 60
+        )
+
+        print(
+            f"Ticket : {issue_key}"
+        )
+
+        # ====================================================
         # STATE
         # ====================================================
 
@@ -112,6 +123,9 @@ async def get_jira_ticket(issue_key: str):
             state
         )
 
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return result["ticket"]
 
@@ -123,69 +137,10 @@ async def get_jira_ticket(issue_key: str):
 
         raise HTTPException(
             status_code=500,
-            detail=str(e)
+            detail=str(e),
         )
 
 
-""" 
-@app.get("/api/jira/{issue_key}")
-def get_jira_ticket(issue_key: str):
-
-    try:
-
-        issue_key = issue_key.strip().upper()
-
-        print(
-            "\n"
-            + "=" * 60
-        )
-
-        print(
-            "🔎 STEP 1 — JIRA AGENT"
-        )
-
-        print(
-            "=" * 60
-        )
-
-        print(
-            f"Ticket : {issue_key}"
-        )
-
-        # ----------------------------------------------------
-        # Récupérer Jira
-        # ----------------------------------------------------
-
-        jira_data = get_jira_issue(
-            issue_key
-        )
-
-        # ----------------------------------------------------
-        # Formatter
-        # ----------------------------------------------------
-
-        ticket = format_ticket(
-            jira_data
-        )
-
-        print(
-            "\n✅ Ticket Jira récupéré."
-        )
-
-        return ticket
-
-    except Exception as e:
-
-        print(
-            f"\n❌ Erreur Jira : {e}"
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
-
- """
 # ============================================================
 # REQUEST MODEL — ANALYSIS
 # ============================================================
@@ -205,7 +160,7 @@ class AnalysisRequest(BaseModel):
 
 @app.post("/api/analysis")
 def analyze_ticket(
-    request: AnalysisRequest
+    request: AnalysisRequest,
 ):
 
     try:
@@ -225,9 +180,9 @@ def analyze_ticket(
 
         ticket = request.ticket
 
-        # ----------------------------------------------------
-        # Vérification
-        # ----------------------------------------------------
+        # ====================================================
+        # VALIDATION
+        # ====================================================
 
         if not ticket:
 
@@ -235,19 +190,17 @@ def analyze_ticket(
                 "❌ Ticket manquant."
             )
 
-        # ----------------------------------------------------
-        # State Agent 2
-        # ----------------------------------------------------
+        # ====================================================
+        # STATE
+        # ====================================================
 
         state = {
-
             "ticket": ticket
-
         }
 
-        # ----------------------------------------------------
-        # Exécuter Agent 2
-        # ----------------------------------------------------
+        # ====================================================
+        # EXECUTE AGENT
+        # ====================================================
 
         result = analysis_agent(
             state
@@ -261,15 +214,15 @@ def analyze_ticket(
             "\n✅ Analyse générée."
         )
 
-        # ----------------------------------------------------
-        # Response
-        # ----------------------------------------------------
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return {
 
             "ticket": ticket,
 
-            "analysis": analysis
+            "analysis": analysis,
 
         }
 
@@ -281,7 +234,7 @@ def analyze_ticket(
 
         raise HTTPException(
             status_code=500,
-            detail=str(e)
+            detail=str(e),
         )
 
 
@@ -306,7 +259,7 @@ class PromptRequest(BaseModel):
 
 @app.post("/api/prompt")
 def generate_prompt(
-    request: PromptRequest
+    request: PromptRequest,
 ):
 
     try:
@@ -328,9 +281,9 @@ def generate_prompt(
 
         analysis = request.analysis
 
-        # ----------------------------------------------------
-        # Vérifications
-        # ----------------------------------------------------
+        # ====================================================
+        # VALIDATION
+        # ====================================================
 
         if not ticket:
 
@@ -344,21 +297,21 @@ def generate_prompt(
                 "❌ Analysis manquante."
             )
 
-        # ----------------------------------------------------
-        # State Agent 3
-        # ----------------------------------------------------
+        # ====================================================
+        # STATE
+        # ====================================================
 
         state = {
 
             "ticket": ticket,
 
-            "analysis": analysis
+            "analysis": analysis,
 
         }
 
-        # ----------------------------------------------------
-        # Exécuter Agent 3
-        # ----------------------------------------------------
+        # ====================================================
+        # EXECUTE AGENT
+        # ====================================================
 
         result = prompt_agent(
             state
@@ -372,9 +325,9 @@ def generate_prompt(
             "\n✅ Prompt généré."
         )
 
-        # ----------------------------------------------------
-        # Response
-        # ----------------------------------------------------
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return {
 
@@ -382,7 +335,7 @@ def generate_prompt(
 
             "analysis": analysis,
 
-            "prompt": prompt
+            "prompt": prompt,
 
         }
 
@@ -394,7 +347,7 @@ def generate_prompt(
 
         raise HTTPException(
             status_code=500,
-            detail=str(e)
+            detail=str(e),
         )
 
 
@@ -419,7 +372,7 @@ class OpenCodeRequest(BaseModel):
 
 @app.post("/api/opencode/execute")
 def execute_opencode(
-    request: OpenCodeRequest
+    request: OpenCodeRequest,
 ):
 
     try:
@@ -437,6 +390,10 @@ def execute_opencode(
             "=" * 60
         )
 
+        # ====================================================
+        # INPUT
+        # ====================================================
+
         issue_key = (
             request.issue_key
             .strip()
@@ -445,9 +402,9 @@ def execute_opencode(
 
         prompt = request.prompt
 
-        # ----------------------------------------------------
-        # Vérification
-        # ----------------------------------------------------
+        # ====================================================
+        # VALIDATION
+        # ====================================================
 
         if not issue_key:
 
@@ -473,15 +430,15 @@ def execute_opencode(
             prompt
         )
 
-        # ----------------------------------------------------
-        # Build Agent 4
-        # ----------------------------------------------------
+        # ====================================================
+        # BUILD OPENCODE GRAPH
+        # ====================================================
 
         workflow = build_opencode_graph()
 
-        # ----------------------------------------------------
-        # State
-        # ----------------------------------------------------
+        # ====================================================
+        # STATE
+        # ====================================================
 
         state = {
 
@@ -489,17 +446,30 @@ def execute_opencode(
                 issue_key,
 
             "coding_instruction":
-                prompt
+                prompt,
 
         }
 
-        # ----------------------------------------------------
-        # Execute
-        # ----------------------------------------------------
+        # ====================================================
+        # EXECUTE
+        # ====================================================
 
         result = workflow.invoke(
             state
         )
+
+        # ====================================================
+        # PROJECT COLLECTOR RESULT
+        # ====================================================
+
+        project_files = result.get(
+            "project_files",
+            {},
+        )
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return {
 
@@ -524,32 +494,20 @@ def execute_opencode(
                     "opencode_return_code"
                 ),
 
-        # ========================================================
-    # PROJECT COLLECTOR
-    # ========================================================
+            "project_dir":
+                result.get(
+                    "project_dir"
+                ),
 
-               "project_dir":
-        result.get(
-            "project_dir"
-        ),
+            "project_files_count":
+                len(project_files),
 
-    "project_files_count":
-        len(
-            result.get(
-                "project_files",
-                {}
-            )
-        ),
+            "project_files":
+                list(
+                    project_files.keys()
+                ),
 
-    "project_files":
-        list(
-            result.get(
-                "project_files",
-                {}
-            ).keys()
-        )
-
-}
+        }
 
     except Exception as e:
 
@@ -559,7 +517,278 @@ def execute_opencode(
 
         raise HTTPException(
             status_code=500,
-            detail=str(e)
+            detail=str(e),
+        )
+
+
+# ============================================================
+# ============================================================
+# STEP 5 — GIT DEPLOYMENT
+# ============================================================
+#
+# POST /api/git/deploy
+#
+# Angular
+#     ↓
+# FastAPI
+#     ↓
+# build_git_graph()
+#     ↓
+# Git Agent
+#     ↓
+# Git
+#     ↓
+# GitHub MCP
+#     ↓
+# Pull Request
+#
+# ============================================================
+
+
+# ============================================================
+# REQUEST MODEL — GIT DEPLOYMENT
+# ============================================================
+
+class GitDeployRequest(BaseModel):
+
+    issue_key: str
+
+    project_dir: str
+
+
+# ============================================================
+# GIT DEPLOYMENT ENDPOINT
+#
+# POST /api/git/deploy
+# ============================================================
+
+@app.post("/api/git/deploy")
+async def deploy_to_git(
+    request: GitDeployRequest,
+):
+
+    try:
+
+        print(
+            "\n"
+            + "=" * 60
+        )
+
+        print(
+            "🚀 STEP 5 — GIT DEPLOYMENT"
+        )
+
+        print(
+            "=" * 60
+        )
+
+        # ====================================================
+        # INPUT
+        # ====================================================
+
+        issue_key = (
+            request.issue_key
+            .strip()
+            .upper()
+        )
+
+        project_dir = (
+            request.project_dir
+            .strip()
+        )
+
+        # ====================================================
+        # VALIDATION
+        # ====================================================
+
+        if not issue_key:
+
+            raise ValueError(
+                "❌ Issue key manquante."
+            )
+
+        if not project_dir:
+
+            raise ValueError(
+                "❌ Project directory manquant."
+            )
+
+        print(
+            f"🎫 Ticket : {issue_key}"
+        )
+
+        print(
+            f"📁 Project : {project_dir}"
+        )
+
+        # ====================================================
+        # BUILD GIT GRAPH
+        # ====================================================
+
+        workflow = build_git_graph()
+
+        # ====================================================
+        # INITIAL STATE
+        # ====================================================
+
+        state = {
+
+            "issue_key":
+                issue_key,
+
+            "project_dir":
+                project_dir,
+
+        }
+
+        # ====================================================
+        # EXECUTE GIT WORKFLOW
+        # ====================================================
+
+        print(
+            "\n🚀 Lancement du Git Workflow..."
+        )
+
+        result = await workflow.ainvoke(
+            state
+        )
+
+        # ====================================================
+        # RESULT
+        # ====================================================
+
+        error = result.get(
+            "error"
+        )
+
+        pull_request_url = result.get(
+            "pull_request_url"
+        )
+
+        success = (
+            error is None
+            and pull_request_url is not None
+        )
+
+        # ====================================================
+        # LOG SUCCESS
+        # ====================================================
+
+        if success:
+
+            print(
+                "\n"
+                + "=" * 60
+            )
+
+            print(
+                "✅ GIT DEPLOYMENT TERMINÉ"
+            )
+
+            print(
+                "=" * 60
+            )
+
+            print(
+                f"🌿 Branche : "
+                f"{result.get('git_branch_name')}"
+            )
+
+            print(
+                f"💾 Commit : "
+                f"{result.get('git_commit_message')}"
+            )
+
+            print(
+                f"🔗 Pull Request : "
+                f"{pull_request_url}"
+            )
+
+        # ====================================================
+        # LOG ERROR
+        # ====================================================
+
+        else:
+
+            print(
+                "\n"
+                + "=" * 60
+            )
+
+            print(
+                "❌ GIT DEPLOYMENT ÉCHOUÉ"
+            )
+
+            print(
+                f"Erreur : {error}"
+            )
+
+            print(
+                "=" * 60
+            )
+
+        # ====================================================
+        # RESPONSE TO ANGULAR
+        # ====================================================
+
+        return {
+
+            "success":
+                success,
+
+            "issue_key":
+                issue_key,
+
+            "project_dir":
+                project_dir,
+
+            "git_action":
+                result.get(
+                    "git_action"
+                ),
+
+            "git_action_reason":
+                result.get(
+                    "git_action_reason"
+                ),
+
+            "git_branch_name":
+                result.get(
+                    "git_branch_name"
+                ),
+
+            "git_commit_message":
+                result.get(
+                    "git_commit_message"
+                ),
+
+            "git_push_result":
+                result.get(
+                    "git_push_result"
+                ),
+
+            "pull_request_number":
+                result.get(
+                    "pull_request_number"
+                ),
+
+            "pull_request_url":
+                pull_request_url,
+
+            "error":
+                error,
+
+        }
+
+    except Exception as e:
+
+        print(
+            f"\n❌ Erreur Git Deployment : {e}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
         )
 
 
@@ -578,9 +807,14 @@ def execute_opencode(
 # Agent 1 → Agent 2 → Agent 3
 #
 # OpenCode NON exécuté
+# Git NON exécuté
+#
 # ============================================================
+
 @app.get("/api/agents/{issue_key}")
-async def run_agents(issue_key: str):
+async def run_agents(
+    issue_key: str,
+):
 
     try:
 
@@ -595,7 +829,9 @@ async def run_agents(issue_key: str):
             + "=" * 60
         )
 
-        print("🤖 ORCHESTRATOR")
+        print(
+            "🤖 ORCHESTRATOR"
+        )
 
         print(
             "=" * 60
@@ -605,35 +841,42 @@ async def run_agents(issue_key: str):
             f"Ticket : {issue_key}"
         )
 
-        # ----------------------------------------------------
-        # Build workflow
-        # ----------------------------------------------------
+        # ====================================================
+        # BUILD WORKFLOW
+        # ====================================================
 
         workflow = build_prompt_graph()
 
-        # ----------------------------------------------------
-        # Initial state
-        # ----------------------------------------------------
+        # ====================================================
+        # INITIAL STATE
+        # ====================================================
 
         initial_state = {
-            "issue_key": issue_key
+
+            "issue_key":
+                issue_key,
+
         }
 
-        # ----------------------------------------------------
-        # Execute async workflow
-        # ----------------------------------------------------
+        # ====================================================
+        # EXECUTE
+        # ====================================================
 
         result = await workflow.ainvoke(
             initial_state
         )
 
-        # ----------------------------------------------------
-        # Get result
-        # ----------------------------------------------------
+        # ====================================================
+        # GET PROMPT
+        # ====================================================
 
         prompt = result.get(
             "coding_instruction"
         )
+
+        # ====================================================
+        # LOG
+        # ====================================================
 
         print(
             "\n"
@@ -647,6 +890,10 @@ async def run_agents(issue_key: str):
         print(
             "=" * 60
         )
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return {
 
@@ -669,7 +916,8 @@ async def run_agents(issue_key: str):
                 ),
 
             "prompt":
-                prompt
+                prompt,
+
         }
 
     except Exception as e:
@@ -680,8 +928,5 @@ async def run_agents(issue_key: str):
 
         raise HTTPException(
             status_code=500,
-            detail=str(e)
+            detail=str(e),
         )
-        
-        
-  
