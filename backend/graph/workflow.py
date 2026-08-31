@@ -10,7 +10,7 @@ from agents.jira_agent_vf import jira_agent_vf
 from agents.analysis_agent import analysis_agent
 from agents.prompt_agent import prompt_agent
 from agents.opencode_agent import opencode_agent
-from agents.git_agent import git_deploy_agent
+#from agents.git_agent import git_deploy_agent
 
 # ============================================================
 # WORKFLOW 1 : JIRA → ANALYSIS → PROMPT
