@@ -1,3 +1,14 @@
+# ============================================================
+# graph/workflow.py
+#
+# LANGGRAPH WORKFLOWS
+# ============================================================
+
+
+# ============================================================
+# IMPORTS
+# ============================================================
+
 from langgraph.graph import (
     StateGraph,
     START,
@@ -6,28 +17,160 @@ from langgraph.graph import (
 
 from graph.state import AgentState
 
-from agents.jira_agent_vf import jira_agent_vf
-from agents.analysis_agent import analysis_agent
-from agents.prompt_agent import prompt_agent
-from agents.opencode_agent import opencode_agent
-#from agents.git_agent import git_deploy_agent
 
 # ============================================================
-# WORKFLOW 1 : JIRA → ANALYSIS → PROMPT
+# AGENTS
+# ============================================================
+
+from agents.git_agent import git_agent
+
+from agents.jira_agent_vf import (
+    jira_agent_vf
+)
+
+from agents.analysis_agent import (
+    analysis_agent
+)
+
+from agents.prompt_agent import (
+    prompt_agent
+)
+
+from agents.git_deploy_agent import (
+    git_deploy_agent
+)
+
+from agents.opencode_agent import (
+    opencode_agent
+)
+
+
+# ============================================================
+# WORKFLOW A
+#
+# GIT PREPARATION
+# ============================================================
+
+def build_git_prepare_graph():
+    """
+    ========================================================
+    WORKFLOW A — GIT PREPARATION
+    ========================================================
+
+        GitHub URL
+             ↓
+        GIT AGENT
+             ↓
+        git clone
+             ↓
+        dossier local
+             ↓
+        git status
+             ↓
+           .git ?
+          /      \
+        OUI      NON
+         ↓        ↓
+      continuer  ERROR
+         ↓
+      git fetch
+         ↓
+    detect main/master
+         ↓
+    switch main/master
+         ↓
+       git pull
+         ↓
+    issue branch
+         ↓
+    git_ready=True
+         ↓
+        END
+
+    ========================================================
+
+    Le Workflow A délègue tout le travail
+    Git au Git Agent.
+
+    Le Workflow A ne fait PAS :
+
+        ❌ OpenCode
+        ❌ git init
+        ❌ git add
+        ❌ git commit
+        ❌ git push
+        ❌ Pull Request
+    """
+
+    graph = StateGraph(
+        AgentState
+    )
+
+    # ========================================================
+    # NODE
+    # ========================================================
+
+    graph.add_node(
+        "git_agent",
+        git_agent
+    )
+
+    # ========================================================
+    # EDGES
+    # ========================================================
+
+    graph.add_edge(
+        START,
+        "git_agent"
+    )
+
+    graph.add_edge(
+        "git_agent",
+        END
+    )
+
+    # ========================================================
+    # COMPILE
+    # ========================================================
+
+    return graph.compile()
+
+
+# ============================================================
+# WORKFLOW B
+#
+# JIRA → ANALYSIS → PROMPT
 # ============================================================
 
 def build_prompt_graph():
+    """
+    ========================================================
+    WORKFLOW B
+    ========================================================
 
-    graph = StateGraph(AgentState)
+        START
+          ↓
+        Jira Agent
+          ↓
+        Analysis Agent
+          ↓
+        Prompt Agent
+          ↓
+        END
+    """
 
-    # --------------------------------------------------------
+    graph = StateGraph(
+        AgentState
+    )
+
+    # ========================================================
     # NODES
-    # --------------------------------------------------------
+    # ========================================================
 
     graph.add_node(
-    "jira_agent_vf",
-    jira_agent_vf
-)
+        "jira_agent_vf",
+        jira_agent_vf
+    )
 
     graph.add_node(
         "analysis_agent",
@@ -39,9 +182,9 @@ def build_prompt_graph():
         prompt_agent
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # EDGES
-    # --------------------------------------------------------
+    # ========================================================
 
     graph.add_edge(
         START,
@@ -63,93 +206,63 @@ def build_prompt_graph():
         END
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # COMPILE
-    # --------------------------------------------------------
+    # ========================================================
 
     return graph.compile()
 
 
 # ============================================================
-# WORKFLOW 2 : OPENCODE
-# ============================================================
-
-def build_opencode_graph():
-
-    graph = StateGraph(AgentState)
-
-    # --------------------------------------------------------
-    # NODE
-    # --------------------------------------------------------
-
-    graph.add_node(
-        "opencode_agent",
-        opencode_agent
-    )
-
-    # --------------------------------------------------------
-    # EDGES
-    # --------------------------------------------------------
-
-    graph.add_edge(
-        START,
-        "opencode_agent"
-    )
-
-    graph.add_edge(
-        "opencode_agent",
-        END
-    )
-
-    # --------------------------------------------------------
-    # COMPILE
-    # --------------------------------------------------------
-
-    return graph.compile()
-
-
-
-
-
-
-
-
-
-# ============================================================
-# WORKFLOW 3
-# GIT DEPLOYMENT
-# ============================================================
+# WORKFLOW C
 #
-# OpenCode → Git Deploy Agent
-#
-# Le Git Deploy Agent sera responsable de :
-#
-#   1. Vérifier le projet
-#   2. Préparer les fichiers
-#   3. Vérifier Git
-#   4. Préparer le commit
-#   5. Utiliser le MCP Client Git
-#   6. Communiquer avec le MCP Server Git
-#   7. Effectuer le push/deploiement
-#
+# GIT DEPLOY
 # ============================================================
 
 def build_git_deploy_graph():
+    """
+    ========================================================
+    WORKFLOW C
+    ========================================================
 
-    graph = StateGraph(AgentState)
+        START
+          ↓
+    Git Deploy Agent
+          ↓
+       git status
+          ↓
+       git add .
+          ↓
+       git commit
+          ↓
+       git push
+          ↓
+     Pull Request
+          ↓
+         END
 
-    # --------------------------------------------------------
+    ========================================================
+
+    Ce workflow est totalement séparé
+    du Git Preparation Agent.
+    """
+
+    graph = StateGraph(
+        AgentState
+    )
+
+    # ========================================================
     # NODE
-    # --------------------------------------------------------
+    # ========================================================
 
     graph.add_node(
         "git_deploy_agent",
         git_deploy_agent
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # EDGES
-    # --------------------------------------------------------
+    # ========================================================
 
     graph.add_edge(
         START,
@@ -161,8 +274,69 @@ def build_git_deploy_graph():
         END
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # COMPILE
-    # --------------------------------------------------------
+    # ========================================================
 
     return graph.compile()
+
+
+# ============================================================
+# WORKFLOW D
+#
+# OPENCODE
+# ============================================================
+
+def build_opencode_graph():
+    """
+    ========================================================
+    WORKFLOW D
+    ========================================================
+
+        START
+          ↓
+    OpenCode Agent
+          ↓
+        END
+
+    Le repository doit avoir été
+    préparé par Workflow A.
+    """
+
+    graph = StateGraph(
+        AgentState
+    )
+
+    # ========================================================
+    # NODE
+    # ========================================================
+
+    graph.add_node(
+        "opencode_agent",
+        opencode_agent
+    )
+
+    # ========================================================
+    # EDGES
+    # ========================================================
+
+    graph.add_edge(
+        START,
+        "opencode_agent"
+    )
+
+    graph.add_edge(
+        "opencode_agent",
+        END
+    )
+
+    # ========================================================
+    # COMPILE
+    # ========================================================
+
+    return graph.compile()
+
+
+# ============================================================
+# END OF FILE
+# ============================================================
