@@ -105,6 +105,10 @@ export class AppComponent {
 
   orchestratorTicket: any = null;
 
+  orchestratorSubtasks: any[] = [];
+
+  orchestratorComplexity: string = '';
+
   orchestratorAnalysis: string = '';
 
   orchestratorPrompt: string = '';
@@ -702,6 +706,10 @@ export class AppComponent {
 
     this.orchestratorTicket = null;
 
+    this.orchestratorSubtasks = [];
+
+    this.orchestratorComplexity = '';
+
     this.orchestratorAnalysis = '';
 
     this.orchestratorPrompt = '';
@@ -776,6 +784,17 @@ export class AppComponent {
         this.orchestratorStep = 1;
 
 
+        this.orchestratorSubtasks =
+          response.subtasks || [];
+
+        this.orchestratorComplexity =
+          response.complexity || '';
+
+
+        /*
+         * Petit délai visuel pour laisser la map
+         * montrer la progression étape par étape.
+         */
         setTimeout(() => {
 
           // ====================================================

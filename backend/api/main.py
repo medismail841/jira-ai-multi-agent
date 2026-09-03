@@ -39,6 +39,7 @@ from pydantic import (
 from agents.jira_agent_vf import (
     jira_agent_vf
 )
+import traceback
 
 from agents.analysis_agent import (
     analysis_agent
@@ -1378,9 +1379,19 @@ async def run_agents(
                     "analysis"
                 ),
 
-            "prompt":
+                       "prompt":
                 result.get(
                     "coding_instruction"
+                ),
+
+            "complexity":
+                result.get(
+                    "complexity"
+                ),
+
+            "subtasks":
+                result.get(
+                    "subtasks"
                 ),
 
             "next_step":
@@ -1400,11 +1411,14 @@ async def run_agents(
         print(
             f"\n❌ Erreur Workflow B : {e}"
         )
+        traceback.print_exc()
+
+        status_code = 503 if str(e).startswith(
+            "MCP_WRITE_TOOLS_UNAVAILABLE:"
+        ) else 500
 
         raise HTTPException(
-
-            status_code=500,
-
+            status_code=status_code,
             detail=str(e)
         )
 

@@ -54,6 +54,10 @@ class AgentState(TypedDict, total=False):
 
     analysis: str
 
+    complexity: str
+
+    subtasks: list[Dict[str, Any]]
+
 
     # ========================================================
     # PROMPT

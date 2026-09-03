@@ -9,7 +9,6 @@ from graph.workflow import (
     build_prompt_graph,
     build_git_deploy_graph,
     build_opencode_graph,
-    build_main_graph,
 )
 
 
@@ -55,9 +54,6 @@ save_workflow_png(
 
 # ============================================================
 # WORKFLOW A — DETAIL
-#
-# This is a conceptual diagram showing the
-# internal Git logic.
 # ============================================================
 
 print()
@@ -123,12 +119,12 @@ print(git_prepare_diagram)
 # ============================================================
 # WORKFLOW B
 #
-# JIRA → ANALYSIS → PROMPT
+# JIRA → ANALYSIS → CLASSIFICATION
 # ============================================================
 
 print()
 print("========================================")
-print("     WORKFLOW B — JIRA → ANALYSIS → PROMPT")
+print("     WORKFLOW B — JIRA → ANALYSIS")
 print("========================================")
 
 prompt_workflow = build_prompt_graph()
@@ -157,15 +153,28 @@ flowchart TD
 
     C["ANALYSIS AGENT"]
 
-    D["PROMPT AGENT"]
+    D{"Classification"}
 
-    E["END"]
+    E["PROMPT AGENT"]
+
+    F["SPLIT TICKET"]
+
+    G["Create Jira subtasks"]
+
+    H["END"]
 
 
     A --> B
     B --> C
     C --> D
-    D --> E
+
+    D -->|SIMPLE| E
+    D -->|COMPLEX| F
+
+    E --> H
+
+    F --> G
+    G --> H
 """
 
 print(prompt_diagram)
@@ -286,62 +295,48 @@ print(opencode_diagram)
 
 
 # ============================================================
-# GLOBAL WORKFLOW
+# GLOBAL ARCHITECTURE
 #
-# ALL AGENTS TOGETHER
+# CONCEPTUAL VIEW
 # ============================================================
 
 print()
 print("========================================")
-print("     GLOBAL WORKFLOW — ALL AGENTS")
-print("========================================")
-
-main_workflow = build_main_graph()
-
-save_workflow_png(
-    main_workflow,
-    "main_workflow.png"
-)
-
-
-# ============================================================
-# GLOBAL WORKFLOW — DETAIL
-#
-# Shows the complete order between agents.
-# ============================================================
-
-print()
-print("========================================")
-print("     GLOBAL WORKFLOW — DETAIL")
+print("     GLOBAL ARCHITECTURE")
 print("========================================")
 
 main_diagram = """
 flowchart TD
 
-    A["START"]
+    A["WORKFLOW B<br/>JIRA"]
 
-    B["GIT AGENT"]
+    B["ANALYSIS"]
 
-    C["JIRA AGENT"]
+    C{"Classification"}
 
-    D["ANALYSIS AGENT"]
+    D["PROMPT AGENT"]
 
-    E["PROMPT AGENT"]
+    E["WORKFLOW A<br/>GIT PREPARATION"]
 
-    F["OPENCODE AGENT"]
+    F["WORKFLOW D<br/>OPENCODE"]
 
-    G["GIT DEPLOY AGENT"]
+    G["WORKFLOW C<br/>GIT DEPLOY"]
 
-    H["END"]
+    H["Pull Request"]
 
 
     A --> B
     B --> C
-    C --> D
+
+    C -->|SIMPLE| D
     D --> E
+
     E --> F
     F --> G
     G --> H
+
+    C -->|COMPLEX| I["SPLIT TICKET"]
+    I --> J["Jira Subtasks"]
 """
 
 print(main_diagram)
@@ -363,25 +358,33 @@ print("  ✅ git_prepare_workflow.png")
 print("  ✅ prompt_workflow.png")
 print("  ✅ git_deploy_workflow.png")
 print("  ✅ opencode_workflow.png")
-print("  ✅ main_workflow.png")
 
 print()
 print("Architecture globale :")
 
 print("""
-START
-  ↓
-GIT AGENT
-  ↓
-JIRA AGENT
-  ↓
-ANALYSIS AGENT
-  ↓
-PROMPT AGENT
-  ↓
-OPENCODE AGENT
-  ↓
-GIT DEPLOY AGENT
-  ↓
-END
+                    WORKFLOW B
+               JIRA → ANALYSIS
+                      ↓
+                 CLASSIFICATION
+                 /            \\
+            SIMPLE            COMPLEX
+               ↓                 ↓
+        PROMPT AGENT      SPLIT TICKET
+               ↓                 ↓
+        WORKFLOW A         Jira Subtasks
+        GIT PREPARE
+               ↓
+        WORKFLOW D
+          OPENCODE
+               ↓
+        WORKFLOW C
+         GIT DEPLOY
+               ↓
+          Pull Request
 """)
+
+
+# ============================================================
+# END OF FILE
+# ============================================================

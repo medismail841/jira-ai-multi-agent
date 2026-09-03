@@ -1563,3 +1563,254 @@ textarea::-webkit-scrollbar-thumb:hover {
   }
 
 }
+
+.split-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e4e8f0;
+}
+
+.subtask-item {
+  padding: 10px;
+  border: 1px solid #e4e8f0;
+  border-radius: 6px;
+}
+
+.subtask-item summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.subtask-item p {
+  margin: 8px 0 0;
+}
+
+.orchestrator-column,
+.step-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.orchestrator-column > .step-card:nth-of-type(4),
+.step-column > .step-card:nth-of-type(4) {
+  order: -1;
+}
+
+.orchestrator-column > .step-card,
+.step-column > .step-card {
+  order: 0;
+}
+
+.orchestrator-column > .step-card:nth-of-type(4),
+.step-column > .step-card:nth-of-type(4) {
+  order: -1;
+}
+
+:host {
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  color: #17343a;
+}
+
+.app-container {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(15, 118, 110, 0.11), transparent 28%),
+    radial-gradient(circle at 100% 12%, rgba(234, 88, 12, 0.08), transparent 24%),
+    #f4f7f6;
+}
+
+.header {
+  height: 82px;
+  padding: 0 clamp(18px, 4vw, 56px);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid #dce7e4;
+  backdrop-filter: blur(16px);
+}
+
+.logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: #0f766e;
+  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.20);
+}
+
+.header h1,
+.column-header h2,
+.step-card-header h3,
+.workflow-map-header h3 {
+  color: #17343a;
+}
+
+.main-content {
+  min-height: calc(100vh - 82px);
+  padding: clamp(20px, 3vw, 38px) clamp(18px, 4vw, 56px);
+}
+
+.columns-container {
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 0;
+}
+
+.orchestrator-column {
+  border-right: 1px solid #d7e2df;
+}
+
+.column-icon {
+  border-radius: 8px;
+  background: #e4f2ef;
+  border-color: #c6e2dc;
+}
+
+.search-card,
+.workflow-map-container,
+.ticket-card,
+.analysis-card,
+.prompt-card,
+.opencode-result-card,
+.step-card {
+  border: 1px solid #dce7e4;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(24, 61, 65, 0.06);
+}
+
+.search-card {
+  background: rgba(255, 255, 255, 0.90);
+}
+
+.search-card h3 {
+  color: #27545a;
+}
+
+.search-container input,
+.edit-form input,
+.edit-form textarea {
+  border-radius: 6px;
+  border-color: #cbdad6;
+  color: #17343a;
+}
+
+.search-container input:focus,
+.edit-form input:focus,
+.edit-form textarea:focus,
+.prompt-editor:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.13);
+}
+
+button {
+  border-radius: 6px;
+  background: #0f766e;
+}
+
+button:hover:not(:disabled) {
+  background: #0b5f59;
+  box-shadow: 0 5px 12px rgba(15, 118, 110, 0.20);
+}
+
+.execute-button {
+  background: #c2410c;
+}
+
+.execute-button:hover:not(:disabled) {
+  background: #9a3412;
+}
+
+.save-button {
+  background: #1769aa;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #12558b;
+}
+
+.workflow-map-container {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.workflow-global-running,
+.status-running {
+  background: #e4f2ef;
+  color: #0f766e;
+}
+
+.workflow-global-running .global-status-dot,
+.map-track-progress,
+.connector-progress {
+  background: #0f766e;
+}
+
+.map-node-wrapper.active .node-circle {
+  border-color: #0f766e;
+  color: #0f766e;
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+}
+
+.map-node-wrapper.completed .node-circle {
+  background: #0f766e;
+  border-color: #0f766e;
+}
+
+.step-badge {
+  border-radius: 4px;
+  background: #e4f2ef;
+  color: #0f766e;
+}
+
+.step-card-header {
+  padding: 18px 20px;
+  background: rgba(250, 252, 251, 0.72);
+}
+
+.step-content {
+  padding: 20px;
+}
+
+.ticket-field {
+  grid-template-columns: 118px minmax(0, 1fr);
+  border-color: #edf2f0;
+}
+
+.prompt-content pre,
+.markdown-content pre {
+  border-radius: 6px;
+  border-color: #dce7e4;
+  background: #f5f9f8;
+}
+
+.loading {
+  border-radius: 6px;
+  background: #e4f2ef;
+  border-color: #c6e2dc;
+  color: #0f766e;
+}
+
+.error-message {
+  border-radius: 6px;
+}
+
+@media (max-width: 650px) {
+  .header {
+    height: 72px;
+  }
+
+  .header h1 {
+    font-size: 17px;
+  }
+
+  .header p {
+    font-size: 11px;
+  }
+
+  .main-content {
+    min-height: calc(100vh - 72px);
+  }
+
+  .ticket-field {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}
