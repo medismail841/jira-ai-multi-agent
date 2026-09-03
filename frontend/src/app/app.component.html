@@ -14,7 +14,10 @@
 
       <div>
         <h1>JIRA AI AGENT</h1>
-        <p>Jira AI Multi-Agent System</p>
+
+        <p>
+          Jira AI Multi-Agent System
+        </p>
       </div>
 
     </div>
@@ -37,6 +40,11 @@
 
       <section class="column orchestrator-column">
 
+
+        <!-- ================================================= -->
+        <!-- HEADER -->
+        <!-- ================================================= -->
+
         <div class="column-header">
 
           <div class="column-icon">
@@ -45,7 +53,9 @@
 
           <div>
 
-            <h2>Orchestrateur</h2>
+            <h2>
+              Orchestrateur
+            </h2>
 
             <p>
               Exécuter automatiquement le workflow complet
@@ -57,7 +67,7 @@
 
 
         <!-- ================================================= -->
-        <!-- SEARCH -->
+        <!-- JIRA TICKET -->
         <!-- ================================================= -->
 
         <div class="search-card">
@@ -94,11 +104,42 @@
 
           </div>
 
+          <small>
+            Exemple : KAN-1
+          </small>
+
         </div>
 
 
         <!-- ================================================= -->
-        <!-- ORCHESTRATOR WORKFLOW MAP -->
+        <!-- GITHUB -->
+        <!-- ================================================= -->
+
+        <div class="search-card">
+
+          <h3>
+            🔗 GitHub Repository
+          </h3>
+
+          <div class="search-container">
+
+            <input
+              type="text"
+              [(ngModel)]="orchestratorRepositoryUrl"
+              placeholder="https://github.com/medismail841/Test_ia.git"
+            />
+
+          </div>
+
+          <small>
+            Repository utilisé par le Git Agent.
+          </small>
+
+        </div>
+
+
+        <!-- ================================================= -->
+        <!-- WORKFLOW MAP -->
         <!-- ================================================= -->
 
         <div
@@ -120,42 +161,48 @@
 
             </div>
 
+
             <div
               class="workflow-global-status"
               [class.workflow-global-running]="orchestrating"
               [class.workflow-global-failed]="orchestratorFailed"
-              [class.workflow-global-completed]="orchestratorSuccess"
+              [class.workflow-global-completed]="orchestratorDeployed"
             >
 
-              <span
-                class="global-status-dot"
-              ></span>
+              <span class="global-status-dot"></span>
+
 
               <span *ngIf="orchestrating">
                 En cours
               </span>
 
+
               <span
-                *ngIf="!orchestrating && orchestratorFailed"
+                *ngIf="
+                  !orchestrating &&
+                  orchestratorFailed
+                "
               >
                 Échec
               </span>
+
 
               <span
                 *ngIf="
                   !orchestrating &&
                   !orchestratorFailed &&
-                  orchestratorSuccess
+                  orchestratorDeployed
                 "
               >
                 Terminé
               </span>
 
+
               <span
                 *ngIf="
                   !orchestrating &&
                   !orchestratorFailed &&
-                  !orchestratorSuccess
+                  !orchestratorDeployed
                 "
               >
                 Pipeline
@@ -166,6 +213,10 @@
           </div>
 
 
+          <!-- ================================================= -->
+          <!-- PROGRESS -->
+          <!-- ================================================= -->
+
           <div class="map-track">
 
             <div
@@ -174,23 +225,34 @@
                 orchestratorStep === 0
                   ? 0
                   : orchestratorStep === 1
-                    ? 16
+                    ? 10
                     : orchestratorStep === 2
-                      ? 42
+                      ? 25
                       : orchestratorStep === 3
-                        ? 68
-                        : 100
+                        ? 40
+                        : orchestratorStep === 4
+                          ? 60
+                          : orchestratorStep === 5
+                            ? 80
+                            : 100
               "
             ></div>
 
           </div>
 
 
+          <!-- ================================================= -->
+          <!-- NODES -->
+          <!-- ================================================= -->
+
           <div class="map-nodes">
 
             <div
               class="map-node-wrapper"
-              *ngFor="let step of workflowSteps; let i = index"
+              *ngFor="
+                let step of workflowSteps;
+                let i = index
+              "
               [class.active]="
                 isOrchestratorStepRunning(step.id)
               "
@@ -205,11 +267,14 @@
               "
             >
 
+
               <!-- CONNECTOR -->
 
               <div
                 class="node-connector"
-                *ngIf="i < workflowSteps.length - 1"
+                *ngIf="
+                  i < workflowSteps.length - 1
+                "
               >
 
                 <div
@@ -226,6 +291,9 @@
 
               <div class="node-circle">
 
+
+                <!-- IDLE -->
+
                 <span
                   *ngIf="
                     !isOrchestratorStepRunning(step.id) &&
@@ -238,6 +306,8 @@
                 </span>
 
 
+                <!-- COMPLETED -->
+
                 <span
                   *ngIf="
                     isOrchestratorStepCompleted(step.id)
@@ -248,6 +318,8 @@
                 </span>
 
 
+                <!-- FAILED -->
+
                 <span
                   *ngIf="
                     isOrchestratorStepFailed(step.id)
@@ -257,6 +329,8 @@
                   !
                 </span>
 
+
+                <!-- RUNNING -->
 
                 <span
                   *ngIf="
@@ -293,7 +367,9 @@
                   "
                 >
 
-                  {{ getOrchestratorStatusLabel(step.id) }}
+                  {{
+                    getOrchestratorStatusLabel(step.id)
+                  }}
 
                 </span>
 
@@ -307,7 +383,7 @@
 
 
         <!-- ================================================= -->
-        <!-- ORCHESTRATOR STEP 1 : TICKET -->
+        <!-- STEP 1 : JIRA -->
         <!-- ================================================= -->
 
         <section
@@ -338,62 +414,106 @@
 
               <div class="ticket-field">
                 <strong>Key :</strong>
-                <span>{{ orchestratorTicket.key }}</span>
+                <span>
+                  {{ orchestratorTicket.key }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Summary :</strong>
-                <span>{{ orchestratorTicket.summary }}</span>
+                <span>
+                  {{ orchestratorTicket.summary }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Description :</strong>
-                <span>{{ orchestratorTicket.description }}</span>
+                <span>
+                  {{ orchestratorTicket.description }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Status :</strong>
-                <span>{{ orchestratorTicket.status }}</span>
+                <span>
+                  {{ orchestratorTicket.status }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Priority :</strong>
-                <span>{{ orchestratorTicket.priority }}</span>
+                <span>
+                  {{ orchestratorTicket.priority }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Issue Type :</strong>
-                <span>{{ orchestratorTicket.issue_type }}</span>
+                <span>
+                  {{ orchestratorTicket.issue_type }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Assignee :</strong>
                 <span>
-                  {{ orchestratorTicket.assignee || 'Non assigné' }}
+                  {{
+                    orchestratorTicket.assignee ||
+                    'Non assigné'
+                  }}
                 </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Project :</strong>
+
                 <span>
-                  {{ orchestratorTicket.project?.name || orchestratorTicket.project }}
-                  ({{ orchestratorTicket.project_key }})
+
+                  {{
+                    orchestratorTicket.project?.name ||
+                    orchestratorTicket.project ||
+                    'Non disponible'
+                  }}
+
+                  <ng-container
+                    *ngIf="orchestratorTicket.project_key"
+                  >
+                    ({{ orchestratorTicket.project_key }})
+                  </ng-container>
+
                 </span>
+
               </div>
+
 
               <div class="ticket-field">
                 <strong>Reporter :</strong>
-                <span>{{ orchestratorTicket.reporter }}</span>
+                <span>
+                  {{ orchestratorTicket.reporter }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Created :</strong>
-                <span>{{ orchestratorTicket.created }}</span>
+                <span>
+                  {{ orchestratorTicket.created }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Updated :</strong>
-                <span>{{ orchestratorTicket.updated }}</span>
+                <span>
+                  {{ orchestratorTicket.updated }}
+                </span>
               </div>
 
             </div>
@@ -404,7 +524,7 @@
 
 
         <!-- ================================================= -->
-        <!-- ORCHESTRATOR STEP 2 : ANALYSIS -->
+        <!-- STEP 2 : ANALYSIS -->
         <!-- ================================================= -->
 
         <section
@@ -431,13 +551,12 @@
 
           <div class="step-content">
 
-            <div class="markdown-content">
-
-              <div
-                [innerHTML]="renderMarkdown(orchestratorAnalysis)"
-              ></div>
-
-            </div>
+            <div
+              class="markdown-content"
+              [innerHTML]="
+                renderMarkdown(orchestratorAnalysis)
+              "
+            ></div>
 
           </div>
 
@@ -445,7 +564,7 @@
 
 
         <!-- ================================================= -->
-        <!-- ORCHESTRATOR STEP 3 : PROMPT -->
+        <!-- STEP 3 : PROMPT -->
         <!-- ================================================= -->
 
         <section
@@ -474,12 +593,19 @@
 
             <div class="prompt-content">
 
+
+              <!-- VIEW -->
+
               <div
                 *ngIf="!orchestratorEditing"
                 class="markdown-content"
-                [innerHTML]="renderMarkdown(orchestratorPrompt)"
+                [innerHTML]="
+                  renderMarkdown(orchestratorPrompt)
+                "
               ></div>
 
+
+              <!-- EDIT -->
 
               <textarea
                 *ngIf="orchestratorEditing"
@@ -491,13 +617,14 @@
             </div>
 
 
+            <!-- ACTIONS -->
+
             <div class="prompt-actions">
 
               <button
                 *ngIf="!orchestratorEditing"
                 type="button"
                 (click)="editOrchestratorPrompt()"
-                [disabled]="orchestrating"
               >
                 ✏️ Modifier
               </button>
@@ -506,11 +633,9 @@
               <button
                 *ngIf="!orchestratorEditing"
                 type="button"
-                class="execute-button"
-                (click)="executeOrchestratorPrompt()"
-                [disabled]="orchestrating"
+                (click)="copyOrchestratorPrompt()"
               >
-                ▶️ Exécuter
+                📋 Copier
               </button>
 
 
@@ -521,7 +646,7 @@
                 (click)="saveAndExecuteOrchestrator()"
                 [disabled]="orchestrating"
               >
-                💾 Enregistrer & Exécuter
+                💾 Enregistrer
               </button>
 
 
@@ -530,7 +655,6 @@
                 type="button"
                 class="cancel-button"
                 (click)="ignoreOrchestratorPrompt()"
-                [disabled]="orchestrating"
               >
                 ↩️ Ignorer
               </button>
@@ -543,7 +667,141 @@
 
 
         <!-- ================================================= -->
-        <!-- ORCHESTRATOR STEP 4 : OPENCODE -->
+        <!-- STEP 4 : GIT -->
+        <!-- ================================================= -->
+
+        <section
+          class="step-card"
+          *ngIf="orchestratorPrompt"
+        >
+
+          <div class="step-card-header">
+
+            <div>
+
+              <span class="step-badge">
+                STEP 4
+              </span>
+
+              <h3>
+                🔀 Git Agent
+              </h3>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="execute-button"
+              (click)="prepareOrchestratorGit()"
+              [disabled]="
+                orchestrating ||
+                !orchestratorPrompt ||
+                !orchestratorRepositoryUrl
+              "
+            >
+              🔀 Préparer Git
+            </button>
+
+          </div>
+
+
+          <div class="step-content">
+
+            <p>
+              Le Git Agent clone le repository,
+              vérifie l'état Git, récupère la branche
+              principale et prépare la branche du ticket.
+            </p>
+
+
+            <div
+              class="opencode-result"
+              *ngIf="orchestratorGitResult"
+            >
+
+              <h4>
+                📋 Résultat Git Agent
+              </h4>
+
+              <pre>{{ orchestratorGitResult | json }}</pre>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- STEP 5 : OPENCODE -->
+        <!-- ================================================= -->
+
+        <section
+          class="step-card"
+          *ngIf="orchestratorGitResult"
+        >
+
+          <div class="step-card-header">
+
+            <div>
+
+              <span class="step-badge">
+                STEP 5
+              </span>
+
+              <h3>
+                🚀 OpenCode
+              </h3>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="execute-button"
+              (click)="executeOrchestratorPrompt()"
+              [disabled]="
+                orchestrating ||
+                !orchestratorPrompt ||
+                !orchestratorGitResult ||
+                orchestratorEditing
+              "
+            >
+              ▶️ Exécuter
+            </button>
+
+          </div>
+
+
+          <div class="step-content">
+
+            <p>
+              OpenCode va implémenter automatiquement
+              les modifications demandées dans le projet.
+            </p>
+
+
+            <div
+              class="opencode-result"
+              *ngIf="orchestratorResult"
+            >
+
+              <h4>
+                📋 Résultat OpenCode
+              </h4>
+
+              <pre>{{ orchestratorResult }}</pre>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- STEP 6 : DEPLOY -->
         <!-- ================================================= -->
 
         <section
@@ -556,30 +814,67 @@
             <div>
 
               <span class="step-badge">
-                STEP 4
+                STEP 6
               </span>
 
               <h3>
-                🚀 OpenCode
+                📤 Git Deploy
               </h3>
 
             </div>
+
+
+            <button
+              type="button"
+              class="execute-button"
+              (click)="deployOrchestrator()"
+              [disabled]="
+                orchestrating ||
+                !orchestratorResult ||
+                !orchestratorSuccess ||
+                !orchestratorRepositoryUrl
+              "
+            >
+              🚀 Déployer
+            </button>
 
           </div>
 
 
           <div class="step-content">
 
-            <div class="opencode-result">
+            <p>
+              Le Git Deploy va envoyer les modifications
+              vers GitHub.
+            </p>
 
-              <pre>{{ orchestratorResult }}</pre>
+
+            <div
+              class="opencode-result"
+              *ngIf="orchestratorDeployResult"
+            >
+
+              <h4>
+                📋 Résultat du déploiement
+              </h4>
+
+              <pre>{{ orchestratorDeployResult | json }}</pre>
+
+            </div>
+
+
+            <div
+              class="success-message"
+              *ngIf="orchestratorDeployed"
+            >
+
+              ✅ Projet déployé avec succès sur GitHub.
 
             </div>
 
           </div>
 
         </section>
-
 
       </section>
 
@@ -589,6 +884,11 @@
       <!-- ================================================= -->
 
       <section class="column step-column">
+
+
+        <!-- ================================================= -->
+        <!-- HEADER -->
+        <!-- ================================================= -->
 
         <div class="column-header">
 
@@ -612,7 +912,7 @@
 
 
         <!-- ================================================= -->
-        <!-- JIRA INPUT -->
+        <!-- JIRA -->
         <!-- ================================================= -->
 
         <div class="search-card">
@@ -620,6 +920,7 @@
           <h3>
             🎯 Jira Ticket
           </h3>
+
 
           <div class="search-container">
 
@@ -629,6 +930,7 @@
               placeholder="KAN-1"
               (keyup.enter)="getTicket()"
             />
+
 
             <button
               type="button"
@@ -652,7 +954,36 @@
 
 
         <!-- ================================================= -->
-        <!-- STEP BY STEP WORKFLOW MAP -->
+        <!-- GITHUB -->
+        <!-- ================================================= -->
+
+        <div class="search-card">
+
+          <h3>
+            🔗 GitHub Repository
+          </h3>
+
+
+          <div class="search-container">
+
+            <input
+              type="text"
+              [(ngModel)]="stepRepositoryUrl"
+              placeholder="https://github.com/medismail841/Test_ia.git"
+            />
+
+          </div>
+
+
+          <small>
+            Repository utilisé par le Git Agent.
+          </small>
+
+        </div>
+
+
+        <!-- ================================================= -->
+        <!-- WORKFLOW MAP -->
         <!-- ================================================= -->
 
         <div
@@ -674,18 +1005,21 @@
 
             </div>
 
+
             <div
               class="workflow-global-status"
               [class.workflow-global-running]="stepLoading"
               [class.workflow-global-failed]="stepFailed"
-              [class.workflow-global-completed]="stepSuccess"
+              [class.workflow-global-completed]="stepDeployed"
             >
 
               <span class="global-status-dot"></span>
 
+
               <span *ngIf="stepLoading">
                 En cours
               </span>
+
 
               <span
                 *ngIf="
@@ -696,21 +1030,23 @@
                 Échec
               </span>
 
-              <span
-                *ngIf="
-                  !stepLoading &&
-                  !stepFailed &&
-                  stepSuccess
-                "
-              >
-                Terminé
-              </span>
 
               <span
                 *ngIf="
                   !stepLoading &&
                   !stepFailed &&
-                  !stepSuccess
+                  stepDeployed
+                "
+              >
+                Terminé
+              </span>
+
+
+              <span
+                *ngIf="
+                  !stepLoading &&
+                  !stepFailed &&
+                  !stepDeployed
                 "
               >
                 Workflow
@@ -721,31 +1057,42 @@
           </div>
 
 
+          <!-- PROGRESS -->
+
           <div class="map-track">
 
             <div
               class="map-track-progress"
               [style.width.%]="
-                stepSuccess
+                stepDeployed
                   ? 100
-                  : stepPrompt
-                    ? 68
-                    : stepAnalysis
-                      ? 42
-                      : stepTicket
-                        ? 16
-                        : 0
+                  : stepResult
+                    ? 80
+                    : stepGitResult
+                      ? 60
+                      : stepPrompt
+                        ? 40
+                        : stepAnalysis
+                          ? 25
+                          : stepTicket
+                            ? 10
+                            : 0
               "
             ></div>
 
           </div>
 
 
+          <!-- NODES -->
+
           <div class="map-nodes">
 
             <div
               class="map-node-wrapper"
-              *ngFor="let step of workflowSteps; let i = index"
+              *ngFor="
+                let step of workflowSteps;
+                let i = index
+              "
               [class.active]="
                 isStepRunning(step.id)
               "
@@ -760,9 +1107,14 @@
               "
             >
 
+
+              <!-- CONNECTOR -->
+
               <div
                 class="node-connector"
-                *ngIf="i < workflowSteps.length - 1"
+                *ngIf="
+                  i < workflowSteps.length - 1
+                "
               >
 
                 <div
@@ -775,7 +1127,12 @@
               </div>
 
 
+              <!-- NODE -->
+
               <div class="node-circle">
+
+
+                <!-- IDLE -->
 
                 <span
                   *ngIf="
@@ -789,6 +1146,8 @@
                 </span>
 
 
+                <!-- COMPLETED -->
+
                 <span
                   *ngIf="isStepCompleted(step.id)"
                   class="node-check"
@@ -796,6 +1155,8 @@
                   ✓
                 </span>
 
+
+                <!-- FAILED -->
 
                 <span
                   *ngIf="isStepFailed(step.id)"
@@ -805,6 +1166,8 @@
                 </span>
 
 
+                <!-- RUNNING -->
+
                 <span
                   *ngIf="isStepRunning(step.id)"
                   class="node-spinner"
@@ -812,6 +1175,8 @@
 
               </div>
 
+
+              <!-- META -->
 
               <div class="node-meta">
 
@@ -836,7 +1201,9 @@
                   "
                 >
 
-                  {{ getStepByStepStatusLabel(step.id) }}
+                  {{
+                    getStepByStepStatusLabel(step.id)
+                  }}
 
                 </span>
 
@@ -873,36 +1240,42 @@
             </div>
 
 
-            <button
-              type="button"
-              *ngIf="!stepTicketEditing"
-              (click)="editStepTicket()"
-            >
-              ✏️ Modifier
-            </button>
+            <div class="header-actions">
+
+              <button
+                type="button"
+                *ngIf="!stepTicketEditing"
+                (click)="editStepTicket()"
+              >
+                ✏️ Modifier
+              </button>
 
 
-            <button
-              type="button"
-              class="save-button"
-              *ngIf="stepTicketEditing"
-              (click)="saveStepTicket()"
-            >
-              💾 Enregistrer
-            </button>
+              <button
+                type="button"
+                class="save-button"
+                *ngIf="stepTicketEditing"
+                (click)="saveStepTicket()"
+              >
+                💾 Enregistrer
+              </button>
 
 
-            <button
-              type="button"
-              class="cancel-button"
-              *ngIf="stepTicketEditing"
-              (click)="ignoreStepTicket()"
-            >
-              ↩️ Ignorer
-            </button>
+              <button
+                type="button"
+                class="cancel-button"
+                *ngIf="stepTicketEditing"
+                (click)="ignoreStepTicket()"
+              >
+                ↩️ Ignorer
+              </button>
+
+            </div>
 
           </div>
 
+
+          <!-- VIEW -->
 
           <div
             class="step-content"
@@ -913,62 +1286,106 @@
 
               <div class="ticket-field">
                 <strong>Key :</strong>
-                <span>{{ stepTicket.key }}</span>
+                <span>
+                  {{ stepTicket.key }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Summary :</strong>
-                <span>{{ stepTicket.summary }}</span>
+                <span>
+                  {{ stepTicket.summary }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Description :</strong>
-                <span>{{ stepTicket.description }}</span>
+                <span>
+                  {{ stepTicket.description }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Status :</strong>
-                <span>{{ stepTicket.status }}</span>
+                <span>
+                  {{ stepTicket.status }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Priority :</strong>
-                <span>{{ stepTicket.priority }}</span>
+                <span>
+                  {{ stepTicket.priority }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Issue Type :</strong>
-                <span>{{ stepTicket.issue_type }}</span>
+                <span>
+                  {{ stepTicket.issue_type }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Assignee :</strong>
                 <span>
-                  {{ stepTicket.assignee || 'Non assigné' }}
+                  {{
+                    stepTicket.assignee ||
+                    'Non assigné'
+                  }}
                 </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Project :</strong>
+
                 <span>
-                  {{ stepTicket.project }}
-                  ({{ stepTicket.project_key }})
+
+                  {{
+                    stepTicket.project?.name ||
+                    stepTicket.project ||
+                    'Non disponible'
+                  }}
+
+                  <ng-container
+                    *ngIf="stepTicket.project_key"
+                  >
+                    ({{ stepTicket.project_key }})
+                  </ng-container>
+
                 </span>
+
               </div>
+
 
               <div class="ticket-field">
                 <strong>Reporter :</strong>
-                <span>{{ stepTicket.reporter }}</span>
+                <span>
+                  {{ stepTicket.reporter }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Created :</strong>
-                <span>{{ stepTicket.created }}</span>
+                <span>
+                  {{ stepTicket.created }}
+                </span>
               </div>
+
 
               <div class="ticket-field">
                 <strong>Updated :</strong>
-                <span>{{ stepTicket.updated }}</span>
+                <span>
+                  {{ stepTicket.updated }}
+                </span>
               </div>
 
             </div>
@@ -976,7 +1393,7 @@
           </div>
 
 
-          <!-- MODIFICATION TICKET -->
+          <!-- EDIT -->
 
           <div
             class="step-content"
@@ -985,7 +1402,9 @@
 
             <div class="edit-form">
 
-              <label>Key</label>
+              <label>
+                Key
+              </label>
 
               <input
                 type="text"
@@ -993,7 +1412,9 @@
               />
 
 
-              <label>Summary</label>
+              <label>
+                Summary
+              </label>
 
               <input
                 type="text"
@@ -1001,7 +1422,9 @@
               />
 
 
-              <label>Description</label>
+              <label>
+                Description
+              </label>
 
               <textarea
                 [(ngModel)]="stepTicket.description"
@@ -1009,7 +1432,9 @@
               ></textarea>
 
 
-              <label>Status</label>
+              <label>
+                Status
+              </label>
 
               <input
                 type="text"
@@ -1017,7 +1442,9 @@
               />
 
 
-              <label>Priority</label>
+              <label>
+                Priority
+              </label>
 
               <input
                 type="text"
@@ -1025,7 +1452,9 @@
               />
 
 
-              <label>Issue Type</label>
+              <label>
+                Issue Type
+              </label>
 
               <input
                 type="text"
@@ -1033,7 +1462,9 @@
               />
 
 
-              <label>Assignee</label>
+              <label>
+                Assignee
+              </label>
 
               <input
                 type="text"
@@ -1041,16 +1472,23 @@
               />
 
 
-              <label>Project</label>
+              <label>
+                Project
+              </label>
 
               <input
                 type="text"
-                [value]="stepTicket.project"
+                [value]="
+                  stepTicket.project?.name ||
+                  stepTicket.project
+                "
                 disabled
               />
 
 
-              <label>Project Key</label>
+              <label>
+                Project Key
+              </label>
 
               <input
                 type="text"
@@ -1059,7 +1497,9 @@
               />
 
 
-              <label>Reporter</label>
+              <label>
+                Reporter
+              </label>
 
               <input
                 type="text"
@@ -1068,7 +1508,9 @@
               />
 
 
-              <label>Created</label>
+              <label>
+                Created
+              </label>
 
               <input
                 type="text"
@@ -1077,7 +1519,9 @@
               />
 
 
-              <label>Updated</label>
+              <label>
+                Updated
+              </label>
 
               <input
                 type="text"
@@ -1116,55 +1560,67 @@
             </div>
 
 
-            <button
-              type="button"
-              (click)="analyzeTicket()"
-              [disabled]="stepLoading || !stepTicket"
-              *ngIf="!stepAnalysis"
-            >
-              🧠 Analyser
-            </button>
+            <div class="header-actions">
+
+              <button
+                type="button"
+                *ngIf="!stepAnalysis"
+                (click)="analyzeTicket()"
+                [disabled]="stepLoading"
+              >
+                🧠 Analyser
+              </button>
 
 
-            <button
-              type="button"
-              *ngIf="stepAnalysis && !stepAnalysisEditing"
-              (click)="editStepAnalysis()"
-            >
-              ✏️ Modifier
-            </button>
+              <button
+                type="button"
+                *ngIf="
+                  stepAnalysis &&
+                  !stepAnalysisEditing
+                "
+                (click)="editStepAnalysis()"
+              >
+                ✏️ Modifier
+              </button>
 
 
-            <button
-              type="button"
-              class="save-button"
-              *ngIf="stepAnalysisEditing"
-              (click)="saveStepAnalysis()"
-            >
-              💾 Enregistrer
-            </button>
+              <button
+                type="button"
+                class="save-button"
+                *ngIf="stepAnalysisEditing"
+                (click)="saveStepAnalysis()"
+              >
+                💾 Enregistrer
+              </button>
 
 
-            <button
-              type="button"
-              class="cancel-button"
-              *ngIf="stepAnalysisEditing"
-              (click)="ignoreStepAnalysis()"
-            >
-              ↩️ Ignorer
-            </button>
+              <button
+                type="button"
+                class="cancel-button"
+                *ngIf="stepAnalysisEditing"
+                (click)="ignoreStepAnalysis()"
+              >
+                ↩️ Ignorer
+              </button>
+
+            </div>
 
           </div>
 
 
           <div
             class="step-content"
-            *ngIf="stepAnalysis && !stepAnalysisEditing"
+            *ngIf="
+              stepAnalysis &&
+              !stepAnalysisEditing
+            "
           >
 
             <div
               class="markdown-content"
-              [innerHTML]="renderMarkdown(stepAnalysis)"
+              [innerHTML]="
+                renderMarkdown(stepAnalysis)
+              "
             ></div>
 
           </div>
@@ -1210,55 +1666,79 @@
             </div>
 
 
-            <button
-              type="button"
-              (click)="generateStepPrompt()"
-              [disabled]="stepLoading || !stepAnalysis"
-              *ngIf="!stepPrompt"
-            >
-              📝 Générer
-            </button>
+            <div class="header-actions">
+
+              <button
+                type="button"
+                *ngIf="!stepPrompt"
+                (click)="generateStepPrompt()"
+                [disabled]="stepLoading"
+              >
+                📝 Générer
+              </button>
 
 
-            <button
-              type="button"
-              *ngIf="stepPrompt && !stepPromptEditing"
-              (click)="editStepPrompt()"
-            >
-              ✏️ Modifier
-            </button>
+              <button
+                type="button"
+                *ngIf="
+                  stepPrompt &&
+                  !stepPromptEditing
+                "
+                (click)="editStepPrompt()"
+              >
+                ✏️ Modifier
+              </button>
 
 
-            <button
-              type="button"
-              class="save-button"
-              *ngIf="stepPromptEditing"
-              (click)="saveStepPrompt()"
-            >
-              💾 Enregistrer
-            </button>
+              <button
+                type="button"
+                *ngIf="
+                  stepPrompt &&
+                  !stepPromptEditing
+                "
+                (click)="copyStepPrompt()"
+              >
+                📋 Copier
+              </button>
 
 
-            <button
-              type="button"
-              class="cancel-button"
-              *ngIf="stepPromptEditing"
-              (click)="ignoreStepPrompt()"
-            >
-              ↩️ Ignorer
-            </button>
+              <button
+                type="button"
+                class="save-button"
+                *ngIf="stepPromptEditing"
+                (click)="saveStepPrompt()"
+              >
+                💾 Enregistrer
+              </button>
+
+
+              <button
+                type="button"
+                class="cancel-button"
+                *ngIf="stepPromptEditing"
+                (click)="ignoreStepPrompt()"
+              >
+                ↩️ Ignorer
+              </button>
+
+            </div>
 
           </div>
 
 
           <div
             class="step-content"
-            *ngIf="stepPrompt && !stepPromptEditing"
+            *ngIf="
+              stepPrompt &&
+              !stepPromptEditing
+            "
           >
 
             <div
               class="markdown-content"
-              [innerHTML]="renderMarkdown(stepPrompt)"
+              [innerHTML]="
+                renderMarkdown(stepPrompt)
+              "
             ></div>
 
           </div>
@@ -1281,7 +1761,7 @@
 
 
         <!-- ================================================= -->
-        <!-- STEP 4 : OPENCODE -->
+        <!-- STEP 4 : GIT -->
         <!-- ================================================= -->
 
         <section
@@ -1298,6 +1778,73 @@
               </span>
 
               <h3>
+                🔀 Git Agent
+              </h3>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="execute-button"
+              (click)="prepareGit()"
+              [disabled]="
+                stepLoading ||
+                !stepPrompt ||
+                !stepRepositoryUrl
+              "
+            >
+              🔀 Préparer Git
+            </button>
+
+          </div>
+
+
+          <div class="step-content">
+
+            <p>
+              Le Git Agent clone le repository,
+              vérifie l'état Git, récupère la branche
+              principale et prépare la branche du ticket.
+            </p>
+
+
+            <div
+              class="opencode-result"
+              *ngIf="stepGitResult"
+            >
+
+              <h4>
+                📋 Résultat Git Agent
+              </h4>
+
+              <pre>{{ stepGitResult | json }}</pre>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- STEP 5 : OPENCODE -->
+        <!-- ================================================= -->
+
+        <section
+          class="step-card"
+          *ngIf="stepGitResult"
+        >
+
+          <div class="step-card-header">
+
+            <div>
+
+              <span class="step-badge">
+                STEP 5
+              </span>
+
+              <h3>
                 🚀 OpenCode
               </h3>
 
@@ -1311,6 +1858,7 @@
               [disabled]="
                 stepLoading ||
                 !stepPrompt ||
+                !stepGitResult ||
                 stepPromptEditing
               "
             >
@@ -1320,26 +1868,110 @@
           </div>
 
 
-          <div
-            class="step-content"
-            *ngIf="stepResult"
-          >
+          <div class="step-content">
 
-            <h4>
-              📋 Résultat OpenCode
-            </h4>
+            <div
+              class="opencode-result"
+              *ngIf="stepResult"
+            >
 
-            <pre>{{ stepResult }}</pre>
+              <h4>
+                📋 Résultat OpenCode
+              </h4>
+
+              <pre>{{ stepResult }}</pre>
+
+            </div>
+
+
+            <div
+              class="success-message"
+              *ngIf="
+                stepSuccess &&
+                stepResult
+              "
+            >
+
+              ✅ OpenCode terminé avec succès.
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- STEP 6 : DEPLOY -->
+        <!-- ================================================= -->
+
+        <section
+          class="step-card"
+          *ngIf="stepResult"
+        >
+
+          <div class="step-card-header">
+
+            <div>
+
+              <span class="step-badge">
+                STEP 6
+              </span>
+
+              <h3>
+                📤 Git Deploy
+              </h3>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="execute-button"
+              (click)="deployStepByStep()"
+              [disabled]="
+                stepLoading ||
+                !stepResult ||
+                !stepSuccess ||
+                !stepRepositoryUrl
+              "
+            >
+              🚀 Déployer
+            </button>
 
           </div>
 
 
-          <div
-            class="success-message"
-            *ngIf="stepSuccess"
-          >
+          <div class="step-content">
 
-            ✅ OpenCode terminé avec succès.
+            <p>
+              Le Git Deploy va envoyer les modifications
+              vers GitHub.
+            </p>
+
+
+            <div
+              class="opencode-result"
+              *ngIf="stepDeployResult"
+            >
+
+              <h4>
+                📋 Résultat du déploiement
+              </h4>
+
+              <pre>{{ stepDeployResult | json }}</pre>
+
+            </div>
+
+
+            <div
+              class="success-message"
+              *ngIf="stepDeployed"
+            >
+
+              ✅ Projet déployé avec succès sur GitHub.
+
+            </div>
 
           </div>
 
@@ -1361,15 +1993,14 @@
 
         </div>
 
-
       </section>
 
     </div>
 
 
-    <!-- ================================================= -->
+    <!-- ===================================================== -->
     <!-- GLOBAL ERROR -->
-    <!-- ================================================= -->
+    <!-- ===================================================== -->
 
     <div
       class="error-message"
@@ -1377,6 +2008,34 @@
     >
 
       ❌ {{ errorMessage }}
+
+      <button
+        type="button"
+        (click)="clearError()"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- GLOBAL SUCCESS -->
+    <!-- ===================================================== -->
+
+    <div
+      class="success-message"
+      *ngIf="successMessage"
+    >
+
+      ✅ {{ successMessage }}
+
+      <button
+        type="button"
+        (click)="clearSuccess()"
+      >
+        ✕
+      </button>
 
     </div>
 
