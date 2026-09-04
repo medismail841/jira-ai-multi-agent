@@ -266,8 +266,11 @@ JIRA TICKET:
 {ticket_content}
 """)
 
+    text = str(response.content).strip()
+    text = text.removeprefix("```").removeprefix("json").removesuffix("```").strip()
+
     try:
-        value = json.loads(str(response.content).strip()).get("classification")
+        value = json.loads(text).get("classification")
         if value in ("SIMPLE", "COMPLEX"):
             print(f"📊 Ticket complexity: {value}")
             return value
@@ -277,8 +280,12 @@ JIRA TICKET:
     fallback_terms = (
         "application", "platform", "system", "end-to-end",
         "architecture", "frontend", "backend", "database",
+        "authentication", "login", "sign-up", "session",
+        "calculator", "user credentials", "api endpoint",
     )
-    value = "COMPLEX" if sum(term in ticket_content.lower() for term in fallback_terms) >= 2 else "SIMPLE"
+    content = ticket_content.lower()
+    matching_terms = sum(term in content for term in fallback_terms)
+    value = "COMPLEX" if matching_terms >= 2 else "SIMPLE"
     print(f"📊 Ticket complexity (fallback): {value}")
     return value
 

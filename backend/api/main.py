@@ -268,15 +268,7 @@ class GitPrepareRequest(
             "Clé Jira, exemple KAN-1",
     )
 
-    github_url: str = Field(
-
-        ...,
-
-        min_length=1,
-
-        description=
-            "URL du repository GitHub",
-    )
+    github_url: str | None = None
 
 
 @app.post(
@@ -377,31 +369,8 @@ def prepare_git_repository(
                     "Issue key manquante."
             )
 
-        # ====================================================
-        # GITHUB URL
-        # ====================================================
-
-        github_url = (
-            request.github_url
-            .strip()
-        )
-
-        if not github_url:
-
-            raise HTTPException(
-
-                status_code=400,
-
-                detail=
-                    "URL GitHub manquante."
-            )
-
         print(
             f"\n🎫 Issue : {issue_key}"
-        )
-
-        print(
-            f"🔗 GitHub : {github_url}"
         )
 
         # ====================================================
@@ -413,8 +382,6 @@ def prepare_git_repository(
             "issue_key":
                 issue_key,
 
-            "github_url":
-                github_url,
         }
 
         print(
@@ -535,16 +502,10 @@ def prepare_git_repository(
                     issue_key,
 
                 "github_url":
-                    result.get(
-                        "github_url",
-                        github_url
-                    ),
+                    None,
 
                 "repository_url":
-                    result.get(
-                        "repository_url",
-                        github_url
-                    ),
+                    None,
 
                 "project_dir":
                     project_dir,
@@ -583,56 +544,10 @@ def prepare_git_repository(
 
         print("=" * 80)
 
-        return {
-
-            "success":
-                False,
-
-            "workflow":
-                "A",
-
-            "stage":
-                "git_prepare",
-
-            "issue_key":
-                issue_key,
-
-            "github_url":
-                result.get(
-                    "github_url",
-                    github_url
-                ),
-
-            "repository_url":
-                result.get(
-                    "repository_url",
-                    github_url
-                ),
-
-            "project_dir":
-                project_dir,
-
-            "git_ready":
-                False,
-
-            "git_base_branch":
-                git_base_branch,
-
-            "git_branch":
-                git_branch,
-
-            "git_branch_created":
-                git_branch_created,
-
-            "git_status":
-                git_status,
-
-            "git_error":
-                git_error,
-
-            "next_step":
-                None,
-        }
+        raise HTTPException(
+            status_code=409,
+            detail=git_error or "Ce projet n'est pas git."
+        )
 
     except HTTPException:
 

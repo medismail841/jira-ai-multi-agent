@@ -537,6 +537,60 @@ def get_git_status(
     }
 
 
+def stash_local_changes(project_dir: str, issue_key: str) -> dict:
+    result = run_git_command(
+        ["git", "status", "--porcelain"],
+        project_dir
+    )
+
+    if not result["success"]:
+        return {
+            "success": False,
+            "error": "Impossible de vérifier les modifications locales.\n"
+            + result["stderr"]
+        }
+
+    if not result["stdout"]:
+        return {"success": True, "stashed": False}
+
+    stash_result = run_git_command(
+        [
+            "git",
+            "stash",
+            "push",
+            "--include-untracked",
+            "--message",
+            f"Jira AI avant préparation {issue_key}"
+        ],
+        project_dir
+    )
+
+    if not stash_result["success"]:
+        return {
+            "success": False,
+            "error": "Impossible de sauvegarder les modifications locales.\n"
+            + stash_result["stderr"]
+        }
+
+    return {"success": True, "stashed": True}
+
+
+def restore_stashed_changes(project_dir: str) -> dict:
+    result = run_git_command(
+        ["git", "stash", "pop"],
+        project_dir
+    )
+
+    if not result["success"]:
+        return {
+            "success": False,
+            "error": "La restauration des modifications locales a échoué.\n"
+            + result["stderr"]
+        }
+
+    return {"success": True}
+
+
 # ============================================================
 # STEP 4 — FETCH ORIGIN
 # ============================================================
@@ -1388,9 +1442,7 @@ def git_agent(
 
             None,
 
-            state.get(
-                "github_url"
-            ),
+            None,
 
             None,
 
@@ -1401,37 +1453,8 @@ def git_agent(
         issue_key
     ).strip().upper()
 
-    # ========================================================
-    # 2. GITHUB URL
-    # ========================================================
-
-    github_url = state.get(
-        "github_url"
-    )
-
-    if not github_url:
-
-        return git_error_state(
-
-            None,
-
-            None,
-
-            issue_key,
-
-            "URL GitHub manquante."
-        )
-
-    github_url = str(
-        github_url
-    ).strip()
-
     print(
         f"\n🎫 Issue : {issue_key}"
-    )
-
-    print(
-        f"🔗 GitHub : {github_url}"
     )
 
     # ========================================================
@@ -1446,7 +1469,7 @@ def git_agent(
 
             None,
 
-            github_url,
+            None,
 
             issue_key,
 
@@ -1460,28 +1483,17 @@ def git_agent(
         f"📁 Project : {project_dir}"
     )
 
-    # ========================================================
-    # 4. CLONE
-    # ========================================================
-
-    clone_result = clone_repository(
-        github_url
-    )
-
-    if not clone_result["success"]:
+    if not os.path.isdir(project_dir):
 
         return git_error_state(
 
             project_dir,
 
-            github_url,
+            None,
 
             issue_key,
 
-            clone_result.get(
-                "error",
-                "git clone a échoué."
-            )
+            "Le dossier local n'existe pas : " + project_dir
         )
 
     # ========================================================
@@ -1498,7 +1510,7 @@ def git_agent(
 
             project_dir,
 
-            github_url,
+            None,
 
             issue_key,
 
@@ -1522,7 +1534,7 @@ def git_agent(
 
             project_dir,
 
-            github_url,
+            None,
 
             issue_key,
 
@@ -1541,6 +1553,22 @@ def git_agent(
         "git_status"
     ]
 
+    stash_result = stash_local_changes(
+        project_dir,
+        issue_key
+    )
+
+    if not stash_result["success"]:
+        return git_error_state(
+            project_dir,
+            None,
+            issue_key,
+            stash_result["error"],
+            git_status
+        )
+
+    changes_stashed = stash_result["stashed"]
+
     # ========================================================
     # 7. FETCH
     # ========================================================
@@ -1555,7 +1583,7 @@ def git_agent(
 
             project_dir,
 
-            github_url,
+            None,
 
             issue_key,
 
@@ -1581,7 +1609,7 @@ def git_agent(
 
             project_dir,
 
-            github_url,
+            None,
 
             issue_key,
 
@@ -1614,7 +1642,7 @@ def git_agent(
 
             project_dir,
 
-            github_url,
+            None,
 
             issue_key,
 
@@ -1645,7 +1673,7 @@ def git_agent(
 
             project_dir,
 
-            github_url,
+            None,
 
             issue_key,
 
@@ -1676,7 +1704,7 @@ def git_agent(
 
             project_dir,
 
-            github_url,
+            None,
 
             issue_key,
 
@@ -1697,6 +1725,21 @@ def git_agent(
     branch_created = issue_result[
         "created"
     ]
+
+    if changes_stashed:
+        restore_result = restore_stashed_changes(
+            project_dir
+        )
+
+        if not restore_result["success"]:
+            return git_error_state(
+                project_dir,
+                None,
+                issue_key,
+                restore_result["error"],
+                git_status,
+                issue_key
+            )
 
     # ========================================================
     # 12. FINAL STATUS
@@ -1734,7 +1777,7 @@ def git_agent(
     )
 
     print(
-        f"🔗 GitHub  : {github_url}"
+        "🔗 Remote : configuré dans le repository local"
     )
 
     print(
@@ -1764,12 +1807,6 @@ def git_agent(
 
         "project_dir":
             project_dir,
-
-        "github_url":
-            github_url,
-
-        "repository_url":
-            github_url,
 
         "issue_key":
             issue_key,
