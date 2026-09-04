@@ -88,6 +88,10 @@ export class AppComponent {
 
   ];
 
+  get visibleWorkflowSteps(): any[] {
+    return this.workflowSteps.filter(step => step.id !== 4);
+  }
+
 
   // ============================================================
   // ORCHESTRATOR
@@ -623,12 +627,6 @@ export class AppComponent {
       );
 
 
-    const githubUrl =
-      this.normalizeGithubUrl(
-        this.orchestratorRepositoryUrl
-      );
-
-
     console.log(
       '============================================'
     );
@@ -643,11 +641,6 @@ export class AppComponent {
     );
 
     console.log(
-      '🔗 GitHub Repository:',
-      githubUrl
-    );
-
-    console.log(
       '============================================'
     );
 
@@ -656,15 +649,6 @@ export class AppComponent {
 
       this.errorMessage =
         'Veuillez entrer une clé Jira, par exemple KAN-1.';
-
-      return;
-    }
-
-
-    if (!githubUrl) {
-
-      this.errorMessage =
-        'Veuillez entrer l’URL du repository GitHub.';
 
       return;
     }
@@ -695,8 +679,6 @@ export class AppComponent {
 
 
     this.orchestratorIssueKey = key;
-
-    this.orchestratorRepositoryUrl = githubUrl;
 
     this.orchestrating = true;
 
@@ -818,13 +800,12 @@ export class AppComponent {
 
             this.orchestratorStep = 3;
 
-            this.orchestrating = false;
-
-
             if (!this.orchestratorPrompt) {
 
               this.errorMessage =
                 'Le backend a terminé mais aucun prompt n’a été retourné.';
+            } else {
+              this.prepareOrchestratorGit();
             }
 
           }, 350);
@@ -904,12 +885,6 @@ export class AppComponent {
       );
 
 
-    const githubUrl =
-      this.normalizeGithubUrl(
-        this.orchestratorRepositoryUrl
-      );
-
-
     console.log(
       '============================================'
     );
@@ -921,11 +896,6 @@ export class AppComponent {
     console.log(
       '🎯 Jira Issue Key:',
       key
-    );
-
-    console.log(
-      '🔗 GitHub URL:',
-      githubUrl
     );
 
     console.log(
@@ -942,15 +912,6 @@ export class AppComponent {
     }
 
 
-    if (!githubUrl) {
-
-      this.errorMessage =
-        'Veuillez entrer l’URL du repository GitHub.';
-
-      return;
-    }
-
-
     if (!this.orchestratorPrompt) {
 
       this.errorMessage =
@@ -961,8 +922,6 @@ export class AppComponent {
 
 
     this.orchestratorIssueKey = key;
-
-    this.orchestratorRepositoryUrl = githubUrl;
 
     this.orchestrating = true;
 
@@ -982,8 +941,6 @@ export class AppComponent {
     const body = {
 
       issue_key: key,
-
-      github_url: githubUrl
 
     };
 
@@ -1027,6 +984,7 @@ export class AppComponent {
 
           this.errorMessage =
             response?.message ||
+            response?.git_error ||
             'La préparation Git a échoué.';
 
           return;
@@ -1249,25 +1207,10 @@ export class AppComponent {
       );
 
 
-    const githubUrl =
-      this.normalizeGithubUrl(
-        this.orchestratorRepositoryUrl
-      );
-
-
     if (!key) {
 
       this.errorMessage =
         'Veuillez entrer une clé Jira.';
-
-      return;
-    }
-
-
-    if (!githubUrl) {
-
-      this.errorMessage =
-        'Veuillez entrer l’URL du repository GitHub.';
 
       return;
     }
@@ -1297,9 +1240,7 @@ export class AppComponent {
 
     const body = {
 
-      issue_key: key,
-
-      github_url: githubUrl
+      issue_key: key
 
     };
 
@@ -1770,6 +1711,10 @@ export class AppComponent {
         this.stepPromptEditing = false;
 
         this.stepLoading = false;
+
+        if (this.stepPrompt) {
+          this.prepareGit();
+        }
       },
 
 
@@ -1850,12 +1795,6 @@ export class AppComponent {
       );
 
 
-    const githubUrl =
-      this.normalizeGithubUrl(
-        this.stepRepositoryUrl
-      );
-
-
     console.log(
       '============================================'
     );
@@ -1867,11 +1806,6 @@ export class AppComponent {
     console.log(
       '🎯 Jira Issue Key:',
       key
-    );
-
-    console.log(
-      '🔗 GitHub URL:',
-      githubUrl
     );
 
     console.log(
@@ -1888,18 +1822,7 @@ export class AppComponent {
     }
 
 
-    if (!githubUrl) {
-
-      this.errorMessage =
-        'Veuillez entrer l’URL du repository GitHub.';
-
-      return;
-    }
-
-
     this.stepIssueKey = key;
-
-    this.stepRepositoryUrl = githubUrl;
 
     this.stepLoading = true;
 
@@ -1919,8 +1842,6 @@ export class AppComponent {
     const body = {
 
       issue_key: key,
-
-      github_url: githubUrl
 
     };
 
@@ -2195,25 +2116,10 @@ export class AppComponent {
       );
 
 
-    const githubUrl =
-      this.normalizeGithubUrl(
-        this.stepRepositoryUrl
-      );
-
-
     if (!key) {
 
       this.errorMessage =
         'Veuillez entrer une clé Jira.';
-
-      return;
-    }
-
-
-    if (!githubUrl) {
-
-      this.errorMessage =
-        'Veuillez entrer l’URL du repository GitHub.';
 
       return;
     }
@@ -2245,9 +2151,7 @@ export class AppComponent {
 
     const body = {
 
-      issue_key: key,
-
-      github_url: githubUrl
+      issue_key: key
 
     };
 

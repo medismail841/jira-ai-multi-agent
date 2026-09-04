@@ -112,33 +112,6 @@
 
 
         <!-- ================================================= -->
-        <!-- GITHUB -->
-        <!-- ================================================= -->
-
-        <div class="search-card">
-
-          <h3>
-            🔗 GitHub Repository
-          </h3>
-
-          <div class="search-container">
-
-            <input
-              type="text"
-              [(ngModel)]="orchestratorRepositoryUrl"
-              placeholder="https://github.com/medismail841/Test_ia.git"
-            />
-
-          </div>
-
-          <small>
-            Repository utilisé par le Git Agent.
-          </small>
-
-        </div>
-
-
-        <!-- ================================================= -->
         <!-- WORKFLOW MAP -->
         <!-- ================================================= -->
 
@@ -250,7 +223,7 @@
             <div
               class="map-node-wrapper"
               *ngFor="
-                let step of workflowSteps;
+                let step of visibleWorkflowSteps;
                 let i = index
               "
               [class.active]="
@@ -273,7 +246,7 @@
               <div
                 class="node-connector"
                 *ngIf="
-                  i < workflowSteps.length - 1
+                  i < visibleWorkflowSteps.length - 1
                 "
               >
 
@@ -692,7 +665,7 @@
 
         <section
           class="step-card"
-          *ngIf="orchestratorPrompt"
+          *ngIf="false"
         >
 
           <div class="step-card-header">
@@ -851,8 +824,7 @@
               [disabled]="
                 orchestrating ||
                 !orchestratorResult ||
-                !orchestratorSuccess ||
-                !orchestratorRepositoryUrl
+                !orchestratorSuccess
               "
             >
               🚀 Déployer
@@ -974,35 +946,6 @@
 
 
         <!-- ================================================= -->
-        <!-- GITHUB -->
-        <!-- ================================================= -->
-
-        <div class="search-card">
-
-          <h3>
-            🔗 GitHub Repository
-          </h3>
-
-
-          <div class="search-container">
-
-            <input
-              type="text"
-              [(ngModel)]="stepRepositoryUrl"
-              placeholder="https://github.com/medismail841/Test_ia.git"
-            />
-
-          </div>
-
-
-          <small>
-            Repository utilisé par le Git Agent.
-          </small>
-
-        </div>
-
-
-        <!-- ================================================= -->
         <!-- WORKFLOW MAP -->
         <!-- ================================================= -->
 
@@ -1110,7 +1053,7 @@
             <div
               class="map-node-wrapper"
               *ngFor="
-                let step of workflowSteps;
+                let step of visibleWorkflowSteps;
                 let i = index
               "
               [class.active]="
@@ -1133,7 +1076,7 @@
               <div
                 class="node-connector"
                 *ngIf="
-                  i < workflowSteps.length - 1
+                  i < visibleWorkflowSteps.length - 1
                 "
               >
 
@@ -1786,7 +1729,7 @@
 
         <section
           class="step-card"
-          *ngIf="stepPrompt"
+          *ngIf="false"
         >
 
           <div class="step-card-header">
@@ -1952,8 +1895,7 @@
               [disabled]="
                 stepLoading ||
                 !stepResult ||
-                !stepSuccess ||
-                !stepRepositoryUrl
+                !stepSuccess
               "
             >
               🚀 Déployer
@@ -2027,14 +1969,25 @@
       *ngIf="errorMessage"
     >
 
-      ❌ {{ errorMessage }}
+      <div class="message-dialog" role="alertdialog" aria-modal="true">
 
-      <button
-        type="button"
-        (click)="clearError()"
-      >
-        ✕
-      </button>
+        <div class="message-icon">!</div>
+
+        <div class="message-copy">
+          <strong>Une erreur est survenue</strong>
+          <p>{{ errorMessage }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="message-close"
+          aria-label="Fermer le message d’erreur"
+          (click)="clearError()"
+        >
+          ✕
+        </button>
+
+      </div>
 
     </div>
 
@@ -2048,14 +2001,25 @@
       *ngIf="successMessage"
     >
 
-      ✅ {{ successMessage }}
+      <div class="message-dialog" role="status" aria-live="polite">
 
-      <button
-        type="button"
-        (click)="clearSuccess()"
-      >
-        ✕
-      </button>
+        <div class="message-icon">✓</div>
+
+        <div class="message-copy">
+          <strong>Opération réussie</strong>
+          <p>{{ successMessage }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="message-close"
+          aria-label="Fermer le message de succès"
+          (click)="clearSuccess()"
+        >
+          ✕
+        </button>
+
+      </div>
 
     </div>
 
