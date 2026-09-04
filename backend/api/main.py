@@ -382,6 +382,11 @@ def prepare_git_repository(
             "issue_key":
                 issue_key,
 
+            "github_url":
+                request.github_url.strip()
+                if request.github_url
+                else None,
+
         }
 
         print(
@@ -502,10 +507,10 @@ def prepare_git_repository(
                     issue_key,
 
                 "github_url":
-                    None,
+                    result.get("github_url"),
 
                 "repository_url":
-                    None,
+                    result.get("repository_url"),
 
                 "project_dir":
                     project_dir,
@@ -527,6 +532,12 @@ def prepare_git_repository(
 
                 "git_error":
                     None,
+
+                "message":
+                    result.get(
+                        "message",
+                        "✅ URL GitHub vérifiée."
+                    ),
 
                 "next_step":
                     "Workflow D — OpenCode",

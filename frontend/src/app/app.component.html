@@ -108,6 +108,17 @@
             Exemple : KAN-1
           </small>
 
+          <input
+            type="url"
+            [(ngModel)]="orchestratorRepositoryUrl"
+            placeholder="https://github.com/organisation/repository.git"
+            aria-label="URL du repository GitHub"
+          />
+
+          <small>
+            Le remote local sera comparé à cette URL avant le fetch.
+          </small>
+
         </div>
 
 
@@ -941,6 +952,17 @@
             </button>
 
           </div>
+
+          <input
+            type="url"
+            [(ngModel)]="stepRepositoryUrl"
+            placeholder="https://github.com/organisation/repository.git"
+            aria-label="URL du repository GitHub"
+          />
+
+          <small>
+            Le remote local sera comparé à cette URL avant le fetch.
+          </small>
 
         </div>
 

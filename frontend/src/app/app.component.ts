@@ -942,6 +942,8 @@ export class AppComponent {
 
       issue_key: key,
 
+      github_url: this.orchestratorRepositoryUrl.trim(),
+
     };
 
 
@@ -993,7 +995,7 @@ export class AppComponent {
 
         this.successMessage =
           response?.message ||
-          'Repository Git préparé avec succès.';
+          '✅ URL GitHub vérifiée.';
       },
 
 
@@ -1843,6 +1845,8 @@ export class AppComponent {
 
       issue_key: key,
 
+      github_url: this.stepRepositoryUrl.trim(),
+
     };
 
 
@@ -1889,7 +1893,7 @@ export class AppComponent {
 
           this.successMessage =
             response?.message ||
-            'Repository Git préparé avec succès.';
+            '✅ URL GitHub vérifiée.';
 
         } else {
 

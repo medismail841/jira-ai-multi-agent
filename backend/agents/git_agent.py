@@ -537,6 +537,131 @@ def get_git_status(
     }
 
 
+
+
+
+
+
+
+
+
+# ============================================================
+# STEP 3B — VERIFY GIT REMOTE
+# ============================================================
+
+def verify_git_remote(
+    project_dir: str,
+    github_url: str | None
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print("🔗 STEP 3B — VERIFY GIT REMOTE")
+    print("=" * 70)
+
+    if not github_url:
+        return {
+            "success": False,
+            "error": (
+                "URL GitHub manquante : impossible de vérifier "
+                "le remote 'origin'."
+            )
+        }
+
+    result = run_git_command(
+        [
+            "git",
+            "remote",
+            "-v"
+        ],
+        project_dir
+    )
+
+    if not result["success"]:
+
+        return {
+            "success": False,
+            "error": (
+                "git remote -v a échoué.\n"
+                + result["stderr"]
+            )
+        }
+
+    remote_url = None
+
+    for line in result["stdout"].splitlines():
+
+        parts = line.split()
+
+        if len(parts) >= 3:
+
+            remote_name = parts[0]
+            url = parts[1]
+            remote_type = parts[2]
+
+            if (
+                remote_name == "origin"
+                and remote_type == "(fetch)"
+            ):
+                remote_url = url
+                break
+
+    if not remote_url:
+
+        return {
+            "success": False,
+            "error": (
+                "Aucun remote 'origin' "
+                "n'a été trouvé."
+            )
+        }
+
+    # Normalisation des URLs
+    local_url = remote_url.rstrip("/")
+
+    expected_url = str(
+        github_url
+    ).strip().rstrip("/")
+
+    if local_url.endswith(".git"):
+        local_url = local_url[:-4]
+
+    if expected_url.endswith(".git"):
+        expected_url = expected_url[:-4]
+
+    print(
+        f"\n📍 Remote local : {local_url}"
+    )
+
+    print(
+        f"🔗 GitHub attendu : {expected_url}"
+    )
+
+    if local_url.lower() != expected_url.lower():
+
+        return {
+            "success": False,
+            "error": (
+                "Le remote Git local ne correspond "
+                "pas au repository GitHub attendu.\n"
+                f"Remote local : {local_url}\n"
+                f"GitHub attendu : {expected_url}"
+            ),
+            "remote_url": remote_url
+        }
+
+    print(
+        "\n✅ URL GitHub vérifiée."
+    )
+
+    return {
+        "success": True,
+        "remote_url": remote_url,
+        "github_url": github_url
+    }
+
+
+
+
 def stash_local_changes(project_dir: str, issue_key: str) -> dict:
     result = run_git_command(
         ["git", "status", "--porcelain"],
@@ -1435,6 +1560,10 @@ def git_agent(
     issue_key = state.get(
         "issue_key"
     )
+    
+    
+    
+    github_url = state.get("github_url")
 
     if not issue_key:
 
@@ -1552,6 +1681,26 @@ def git_agent(
     git_status = status_result[
         "git_status"
     ]
+
+    # Vérifier le remote avant toute mutation locale et avant le fetch.
+    remote_result = verify_git_remote(
+        project_dir,
+        github_url
+    )
+
+    if not remote_result["success"]:
+        return git_error_state(
+            project_dir,
+            github_url,
+            issue_key,
+            remote_result.get(
+                "error",
+                "La vérification du remote Git a échoué."
+            ),
+            git_status
+        )
+
+    remote_url = remote_result.get("remote_url")
 
     stash_result = stash_local_changes(
         project_dir,
@@ -1822,6 +1971,15 @@ def git_agent(
 
         "git_base_branch":
             base_branch,
+
+        "github_url":
+            github_url,
+
+        "repository_url":
+            remote_url,
+
+        "message":
+            "✅ URL GitHub vérifiée.",
 
         "git_error":
             None,
