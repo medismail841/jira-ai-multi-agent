@@ -21,7 +21,12 @@ export class AppComponent {
   // ============================================================
 
   errorMessage: string = '';
+  successMessage: string = '';
 
+
+  // ============================================================
+  // MARKDOWN
+  // ============================================================
 
   renderMarkdown(markdown: string): string {
 
@@ -34,43 +39,58 @@ export class AppComponent {
 
 
   // ============================================================
-  // WORKFLOW STATES
+  // WORKFLOW STEPS
   // ============================================================
 
-  /*
-   * 0 = aucun workflow démarré
-   * 1 = Jira / Ticket
-   * 2 = Analysis
-   * 3 = Prompt
-   * 4 = OpenCode
-   */
-
   readonly workflowSteps = [
+
     {
       id: 1,
       title: 'Jira Agent',
       shortTitle: 'Ticket',
       icon: '🔎'
     },
+
     {
       id: 2,
       title: 'Analysis Agent',
       shortTitle: 'Analyse',
       icon: '🧠'
     },
+
     {
       id: 3,
       title: 'Prompt Agent',
       shortTitle: 'Prompt',
       icon: '📝'
     },
+
     {
       id: 4,
+      title: 'Git Agent',
+      shortTitle: 'Git',
+      icon: '🔀'
+    },
+
+    {
+      id: 5,
       title: 'OpenCode',
       shortTitle: 'Execution',
       icon: '🚀'
+    },
+
+    {
+      id: 6,
+      title: 'Git Deploy',
+      shortTitle: 'Deploy',
+      icon: '📤'
     }
+
   ];
+
+  get visibleWorkflowSteps(): any[] {
+    return this.workflowSteps.filter(step => step.id !== 4);
+  }
 
 
   // ============================================================
@@ -78,6 +98,8 @@ export class AppComponent {
   // ============================================================
 
   orchestratorIssueKey: string = '';
+
+  orchestratorRepositoryUrl: string = '';
 
   orchestrating: boolean = false;
 
@@ -95,19 +117,26 @@ export class AppComponent {
 
   orchestratorPrompt: string = '';
 
-  orchestratorEditing: boolean = false;
+  orchestratorGitResult: any = null;
 
   orchestratorResult: string = '';
 
   orchestratorSuccess: boolean = false;
 
-  /*
-   * Permet d'afficher un état FAILED dans la map
-   * sans modifier la logique métier existante.
-   */
   orchestratorFailed: boolean = false;
 
   orchestratorFailedStep: number = 0;
+
+  orchestratorEditing: boolean = false;
+
+
+  // ============================================================
+  // ORCHESTRATOR DEPLOY
+  // ============================================================
+
+  orchestratorDeployResult: any = null;
+
+  orchestratorDeployed: boolean = false;
 
 
   // ============================================================
@@ -115,6 +144,8 @@ export class AppComponent {
   // ============================================================
 
   stepIssueKey: string = '';
+
+  stepRepositoryUrl: string = '';
 
   stepLoading: boolean = false;
 
@@ -124,6 +155,8 @@ export class AppComponent {
 
   stepPrompt: string = '';
 
+  stepGitResult: any = null;
+
   stepResult: string = '';
 
   stepSuccess: boolean = false;
@@ -131,6 +164,15 @@ export class AppComponent {
   stepFailed: boolean = false;
 
   stepFailedStep: number = 0;
+
+
+  // ============================================================
+  // STEP BY STEP DEPLOY
+  // ============================================================
+
+  stepDeployResult: any = null;
+
+  stepDeployed: boolean = false;
 
 
   // ============================================================
@@ -145,7 +187,7 @@ export class AppComponent {
 
 
   // ============================================================
-  // BACKUP AVANT MODIFICATION
+  // BACKUPS
   // ============================================================
 
   private stepTicketBackup: any = null;
@@ -169,47 +211,186 @@ export class AppComponent {
   // ============================================================
 
   clearError(): void {
-
     this.errorMessage = '';
-
   }
 
 
   // ============================================================
-  // ORCHESTRATOR MAP
+  // SUCCESS
+  // ============================================================
+
+  clearSuccess(): void {
+    this.successMessage = '';
+  }
+
+
+  // ============================================================
+  // API ERROR HELPER
+  // ============================================================
+
+  private getApiErrorMessage(
+    error: any,
+    fallback: string
+  ): string {
+
+    const apiError = error?.error;
+
+    if (!apiError) {
+      return fallback;
+    }
+
+
+    // ==========================================================
+    // FastAPI :
+    //
+    // {
+    //   "detail": "..."
+    // }
+    // ==========================================================
+
+    if (
+      typeof apiError.detail === 'string' &&
+      apiError.detail.trim()
+    ) {
+
+      return apiError.detail;
+    }
+
+
+    // ==========================================================
+    // FastAPI 422 :
+    //
+    // {
+    //   "detail": [
+    //     {
+    //       "loc": [...],
+    //       "msg": "...",
+    //       "type": "..."
+    //     }
+    //   ]
+    // }
+    // ==========================================================
+
+    if (
+      Array.isArray(apiError.detail) &&
+      apiError.detail.length > 0
+    ) {
+
+      return apiError.detail
+        .map((item: any) => {
+
+          const location =
+            Array.isArray(item?.loc)
+              ? item.loc.join(' → ')
+              : '';
+
+          const message =
+            item?.msg ||
+            'Erreur de validation';
+
+          return location
+            ? `${location}: ${message}`
+            : message;
+
+        })
+        .join(' | ');
+    }
+
+
+    // ==========================================================
+    // Generic message
+    // ==========================================================
+
+    if (
+      typeof apiError.message === 'string' &&
+      apiError.message.trim()
+    ) {
+
+      return apiError.message;
+    }
+
+
+    return fallback;
+  }
+
+
+  // ============================================================
+  // VALIDATE JIRA ISSUE KEY
+  // ============================================================
+
+  private normalizeIssueKey(value: string): string {
+
+    return (value || '')
+      .trim()
+      .toUpperCase();
+  }
+
+
+  // ============================================================
+  // VALIDATE GITHUB URL
+  // ============================================================
+
+  private normalizeGithubUrl(value: string): string {
+
+    return (value || '').trim();
+  }
+
+
+  // ============================================================
+  // ORCHESTRATOR STATUS
   // ============================================================
 
   getOrchestratorStepStatus(stepId: number): string {
 
-    if (this.orchestratorFailed && this.orchestratorFailedStep === stepId) {
+    if (
+      this.orchestratorFailed &&
+      this.orchestratorFailedStep === stepId
+    ) {
+
       return 'failed';
     }
 
-    if (this.orchestratorStep > stepId) {
-      return 'completed';
-    }
 
-    if (this.orchestratorStep === stepId && this.orchestrating) {
-      return 'running';
-    }
-
-    /*
-     * Lorsque le workflow est terminé et que l'étape 4 est atteinte.
-     */
     if (
-      stepId === 4 &&
-      this.orchestratorStep === 4 &&
-      this.orchestratorSuccess
+      this.orchestratorSuccess &&
+      this.orchestratorStep >= stepId
     ) {
+
       return 'completed';
     }
+
+
+    if (
+      this.orchestratorStep > stepId
+    ) {
+
+      return 'completed';
+    }
+
 
     if (
       this.orchestratorStep === stepId &&
-      !this.orchestrating
+      this.orchestrating
     ) {
+
+      return 'running';
+    }
+
+
+    if (
+      this.orchestratorStep === stepId &&
+      !this.orchestrating &&
+      stepId <= 3 &&
+      (
+        this.orchestratorTicket ||
+        this.orchestratorAnalysis ||
+        this.orchestratorPrompt
+      )
+    ) {
+
       return 'completed';
     }
+
 
     return 'idle';
   }
@@ -217,7 +398,8 @@ export class AppComponent {
 
   getOrchestratorStatusLabel(stepId: number): string {
 
-    const status = this.getOrchestratorStepStatus(stepId);
+    const status =
+      this.getOrchestratorStepStatus(stepId);
 
     switch (status) {
 
@@ -237,31 +419,22 @@ export class AppComponent {
 
 
   isOrchestratorStepCompleted(stepId: number): boolean {
-
-    return (
-      this.getOrchestratorStepStatus(stepId) === 'completed'
-    );
+    return this.getOrchestratorStepStatus(stepId) === 'completed';
   }
 
 
   isOrchestratorStepRunning(stepId: number): boolean {
-
-    return (
-      this.getOrchestratorStepStatus(stepId) === 'running'
-    );
+    return this.getOrchestratorStepStatus(stepId) === 'running';
   }
 
 
   isOrchestratorStepFailed(stepId: number): boolean {
-
-    return (
-      this.getOrchestratorStepStatus(stepId) === 'failed'
-    );
+    return this.getOrchestratorStepStatus(stepId) === 'failed';
   }
 
 
   // ============================================================
-  // STEP BY STEP MAP
+  // STEP BY STEP STATUS
   // ============================================================
 
   getStepByStepStatus(stepId: number): string {
@@ -270,6 +443,7 @@ export class AppComponent {
       this.stepFailed &&
       this.stepFailedStep === stepId
     ) {
+
       return 'failed';
     }
 
@@ -280,10 +454,7 @@ export class AppComponent {
         return 'completed';
       }
 
-      if (
-        this.stepLoading &&
-        !this.stepTicket
-      ) {
+      if (this.stepLoading) {
         return 'running';
       }
 
@@ -299,9 +470,9 @@ export class AppComponent {
 
       if (
         this.stepLoading &&
-        this.stepTicket &&
-        !this.stepAnalysis
+        this.stepTicket
       ) {
+
         return 'running';
       }
 
@@ -317,9 +488,9 @@ export class AppComponent {
 
       if (
         this.stepLoading &&
-        this.stepAnalysis &&
-        !this.stepPrompt
+        this.stepAnalysis
       ) {
+
         return 'running';
       }
 
@@ -329,15 +500,61 @@ export class AppComponent {
 
     if (stepId === 4) {
 
-      if (this.stepSuccess) {
+      if (
+        this.stepGitResult &&
+        this.stepGitResult.success === true
+      ) {
+
+        return 'completed';
+      }
+
+      if (
+        this.stepLoading &&
+        this.stepPrompt
+      ) {
+
+        return 'running';
+      }
+
+      return 'idle';
+    }
+
+
+    if (stepId === 5) {
+
+      if (
+        this.stepResult &&
+        this.stepSuccess
+      ) {
+
         return 'completed';
       }
 
       if (
         this.stepLoading &&
         this.stepPrompt &&
+        this.stepGitResult &&
         !this.stepResult
       ) {
+
+        return 'running';
+      }
+
+      return 'idle';
+    }
+
+
+    if (stepId === 6) {
+
+      if (this.stepDeployed) {
+        return 'completed';
+      }
+
+      if (
+        this.stepLoading &&
+        this.stepResult
+      ) {
+
         return 'running';
       }
 
@@ -351,7 +568,8 @@ export class AppComponent {
 
   getStepByStepStatusLabel(stepId: number): string {
 
-    const status = this.getStepByStepStatus(stepId);
+    const status =
+      this.getStepByStepStatus(stepId);
 
     switch (status) {
 
@@ -371,49 +589,96 @@ export class AppComponent {
 
 
   isStepCompleted(stepId: number): boolean {
-
-    return (
-      this.getStepByStepStatus(stepId) === 'completed'
-    );
+    return this.getStepByStepStatus(stepId) === 'completed';
   }
 
 
   isStepRunning(stepId: number): boolean {
-
-    return (
-      this.getStepByStepStatus(stepId) === 'running'
-    );
+    return this.getStepByStepStatus(stepId) === 'running';
   }
 
 
   isStepFailed(stepId: number): boolean {
-
-    return (
-      this.getStepByStepStatus(stepId) === 'failed'
-    );
+    return this.getStepByStepStatus(stepId) === 'failed';
   }
 
 
   // ============================================================
-  // ORCHESTRATOR
+  // ORCHESTRATOR - WORKFLOW
   // ============================================================
 
   runOrchestrator(): void {
 
+    // ==========================================================
+    // IMPORTANT :
+    //
+    // Cette variable doit TOUJOURS être la clé Jira.
+    //
+    // Exemple :
+    // KAN-1
+    //
+    // JAMAIS :
+    // https://github.com/...
+    // ==========================================================
+
     const key =
-      this.orchestratorIssueKey
-        .trim()
-        .toUpperCase();
+      this.normalizeIssueKey(
+        this.orchestratorIssueKey
+      );
+
+
+    console.log(
+      '============================================'
+    );
+
+    console.log(
+      '🚀 ORCHESTRATOR START'
+    );
+
+    console.log(
+      '🎯 Jira Issue Key:',
+      key
+    );
+
+    console.log(
+      '============================================'
+    );
 
 
     if (!key) {
 
       this.errorMessage =
-        'Veuillez entrer une clé Jira pour l’orchestrateur.';
+        'Veuillez entrer une clé Jira, par exemple KAN-1.';
 
       return;
     }
 
+
+    // ==========================================================
+    // PROTECTION CONTRE L'ERREUR 404
+    //
+    // On refuse explicitement une URL GitHub comme issue key.
+    // ==========================================================
+
+    if (
+      key.includes('HTTP://') ||
+      key.includes('HTTPS://') ||
+      key.includes('GITHUB.COM')
+    ) {
+
+      this.errorMessage =
+        'Erreur : le champ Jira Ticket contient une URL GitHub. Veuillez mettre KAN-1 dans Jira Ticket et l’URL GitHub dans Repository.';
+
+      console.error(
+        '❌ ISSUE KEY INVALIDE:',
+        key
+      );
+
+      return;
+    }
+
+
+    this.orchestratorIssueKey = key;
 
     this.orchestrating = true;
 
@@ -431,9 +696,13 @@ export class AppComponent {
 
     this.orchestratorPrompt = '';
 
-    this.orchestratorEditing = false;
+    this.orchestratorGitResult = null;
 
     this.orchestratorResult = '';
+
+    this.orchestratorDeployResult = null;
+
+    this.orchestratorDeployed = false;
 
     this.orchestratorSuccess = false;
 
@@ -441,15 +710,38 @@ export class AppComponent {
 
     this.orchestratorFailedStep = 0;
 
+    this.orchestratorEditing = false;
+
     this.errorMessage = '';
 
+    this.successMessage = '';
+
+
+    // ==========================================================
+    // BACKEND WORKFLOW B
+    //
+    // IMPORTANT :
+    //
+    // /api/agents/{issue_key}
+    //
+    // reçoit UNIQUEMENT :
+    //
+    // KAN-1
+    //
+    // Jamais l'URL GitHub.
+    // ==========================================================
 
     const url =
-      `${this.apiUrl}/api/agents/${key}`;
+      `${this.apiUrl}/api/agents/${encodeURIComponent(key)}`;
 
 
     console.log(
-      '🚀 ORCHESTRATOR:',
+      '🎯 ISSUE KEY ENVOYEE AU BACKEND:',
+      key
+    );
+
+    console.log(
+      '🚀 ORCHESTRATOR API:',
       url
     );
 
@@ -459,19 +751,20 @@ export class AppComponent {
       next: (response) => {
 
         console.log(
-          '✅ Orchestrateur terminé:',
+          '✅ Orchestrateur Jira terminé:',
           response
         );
 
 
         // ======================================================
-        // STEP 1
+        // STEP 1 - JIRA
         // ======================================================
+
+        this.orchestratorTicket =
+          response.ticket || null;
 
         this.orchestratorStep = 1;
 
-        this.orchestratorTicket =
-          response.ticket;
 
         this.orchestratorSubtasks =
           response.subtasks || [];
@@ -487,28 +780,33 @@ export class AppComponent {
         setTimeout(() => {
 
           // ====================================================
-          // STEP 2
+          // STEP 2 - ANALYSIS
           // ====================================================
 
-          this.orchestratorStep = 2;
-
           this.orchestratorAnalysis =
-            response.analysis;
+            response.analysis || '';
+
+          this.orchestratorStep = 2;
 
 
           setTimeout(() => {
 
             // ==================================================
-            // STEP 3
+            // STEP 3 - PROMPT
             // ==================================================
+
+            this.orchestratorPrompt =
+              response.prompt || '';
 
             this.orchestratorStep = 3;
 
-            this.orchestratorPrompt =
-              response.prompt;
+            if (!this.orchestratorPrompt) {
 
-
-            this.orchestrating = false;
+              this.errorMessage =
+                'Le backend a terminé mais aucun prompt n’a été retourné.';
+            } else {
+              this.prepareOrchestratorGit();
+            }
 
           }, 350);
 
@@ -527,10 +825,6 @@ export class AppComponent {
 
         this.orchestrating = false;
 
-        /*
-         * On conserve la map visible pour afficher
-         * l'état FAILED.
-         */
         this.orchestratorStarted = true;
 
         this.orchestratorFailed = true;
@@ -538,28 +832,20 @@ export class AppComponent {
         this.orchestratorFailedStep =
           this.orchestratorStep || 1;
 
-        this.orchestratorTicket = null;
-
-        this.orchestratorAnalysis = '';
-
-        this.orchestratorPrompt = '';
-
-        this.orchestratorResult = '';
-
 
         this.errorMessage =
-          error?.error?.detail ||
-          'Impossible d’exécuter l’orchestrateur.';
-
+          this.getApiErrorMessage(
+            error,
+            'Impossible d’exécuter l’orchestrateur.'
+          );
       }
 
     });
-
   }
 
 
   // ============================================================
-  // EDIT ORCHESTRATOR PROMPT
+  // ORCHESTRATOR PROMPT EDIT
   // ============================================================
 
   editOrchestratorPrompt(): void {
@@ -576,37 +862,179 @@ export class AppComponent {
     this.errorMessage = '';
 
     this.orchestratorEditing = true;
-
   }
 
-
-  // ============================================================
-  // IGNORE ORCHESTRATOR MODIFICATION
-  // ============================================================
 
   ignoreOrchestratorPrompt(): void {
 
     this.orchestratorEditing = false;
 
     this.errorMessage = '';
-
-    console.log(
-      '↩️ Modification du prompt orchestrateur ignorée.'
-    );
-
   }
 
 
   // ============================================================
-  // EXECUTE ORCHESTRATOR
+  // ORCHESTRATOR GIT
+  // ============================================================
+
+  prepareOrchestratorGit(): void {
+
+    const key =
+      this.normalizeIssueKey(
+        this.orchestratorIssueKey
+      );
+
+
+    console.log(
+      '============================================'
+    );
+
+    console.log(
+      '🔀 ORCHESTRATOR GIT PREPARE'
+    );
+
+    console.log(
+      '🎯 Jira Issue Key:',
+      key
+    );
+
+    console.log(
+      '============================================'
+    );
+
+
+    if (!key) {
+
+      this.errorMessage =
+        'Veuillez entrer une clé Jira.';
+
+      return;
+    }
+
+
+    if (!this.orchestratorPrompt) {
+
+      this.errorMessage =
+        'Veuillez d’abord générer le prompt.';
+
+      return;
+    }
+
+
+    this.orchestratorIssueKey = key;
+
+    this.orchestrating = true;
+
+    this.orchestratorStep = 4;
+
+    this.orchestratorGitResult = null;
+
+    this.orchestratorFailed = false;
+
+    this.orchestratorFailedStep = 0;
+
+    this.errorMessage = '';
+
+    this.successMessage = '';
+
+
+    const body = {
+
+      issue_key: key,
+
+      github_url: this.orchestratorRepositoryUrl.trim(),
+
+    };
+
+
+    console.log(
+      '📦 BODY /api/git/prepare:',
+      body
+    );
+
+
+    this.http.post<any>(
+
+      `${this.apiUrl}/api/git/prepare`,
+
+      body
+
+    ).subscribe({
+
+      next: (response) => {
+
+        console.log(
+          '✅ Git orchestrateur:',
+          response
+        );
+
+
+        this.orchestratorGitResult =
+          response;
+
+
+        this.orchestrating = false;
+
+
+        if (
+          response?.success !== true
+        ) {
+
+          this.orchestratorFailed = true;
+
+          this.orchestratorFailedStep = 4;
+
+          this.errorMessage =
+            response?.message ||
+            response?.git_error ||
+            'La préparation Git a échoué.';
+
+          return;
+        }
+
+
+        this.successMessage =
+          response?.message ||
+          '✅ URL GitHub vérifiée.';
+      },
+
+
+      error: (error) => {
+
+        console.error(
+          '❌ Erreur Git orchestrateur:',
+          error
+        );
+
+
+        this.orchestrating = false;
+
+        this.orchestratorFailed = true;
+
+        this.orchestratorFailedStep = 4;
+
+
+        this.errorMessage =
+          this.getApiErrorMessage(
+            error,
+            'Impossible de préparer le repository Git.'
+          );
+      }
+
+    });
+  }
+
+
+  // ============================================================
+  // ORCHESTRATOR OPEN CODE
   // ============================================================
 
   executeOrchestratorPrompt(): void {
 
     const key =
-      this.orchestratorIssueKey
-        .trim()
-        .toUpperCase();
+      this.normalizeIssueKey(
+        this.orchestratorIssueKey
+      );
 
 
     if (!key) {
@@ -627,9 +1055,29 @@ export class AppComponent {
     }
 
 
+    if (!this.orchestratorGitResult) {
+
+      this.errorMessage =
+        'Veuillez d’abord préparer le repository Git.';
+
+      return;
+    }
+
+
+    if (
+      this.orchestratorGitResult?.success !== true
+    ) {
+
+      this.errorMessage =
+        'La préparation Git n’a pas réussi.';
+
+      return;
+    }
+
+
     this.orchestrating = true;
 
-    this.errorMessage = '';
+    this.orchestratorStep = 5;
 
     this.orchestratorResult = '';
 
@@ -639,7 +1087,7 @@ export class AppComponent {
 
     this.orchestratorFailedStep = 0;
 
-    this.orchestratorStep = 4;
+    this.errorMessage = '';
 
 
     const body = {
@@ -649,6 +1097,16 @@ export class AppComponent {
       prompt: this.orchestratorPrompt
 
     };
+
+
+    console.log(
+      '🚀 ORCHESTRATOR - OPENCODE'
+    );
+
+    console.log(
+      '📦 Body:',
+      body
+    );
 
 
     this.http.post<any>(
@@ -675,21 +1133,27 @@ export class AppComponent {
           response.success === true;
 
 
-        this.orchestratorEditing = false;
-
-        this.orchestratorStep = 4;
-
         this.orchestrating = false;
+
+        this.orchestratorEditing = false;
 
 
         if (!this.orchestratorSuccess) {
 
           this.orchestratorFailed = true;
 
-          this.orchestratorFailedStep = 4;
+          this.orchestratorFailedStep = 5;
 
+          this.errorMessage =
+            response?.message ||
+            'OpenCode a échoué.';
+
+          return;
         }
 
+
+        this.successMessage =
+          'OpenCode a terminé avec succès.';
       },
 
 
@@ -705,81 +1169,182 @@ export class AppComponent {
 
         this.orchestratorSuccess = false;
 
-        this.orchestratorResult = '';
-
         this.orchestratorFailed = true;
 
-        this.orchestratorFailedStep = 4;
+        this.orchestratorFailedStep = 5;
 
 
         this.errorMessage =
-          error?.error?.detail ||
-          'Erreur pendant l’exécution de OpenCode.';
-
+          this.getApiErrorMessage(
+            error,
+            'Erreur pendant l’exécution de OpenCode.'
+          );
       }
 
     });
-
   }
 
 
   // ============================================================
-  // SAVE + EXECUTE ORCHESTRATOR
+  // ORCHESTRATOR SAVE PROMPT
   // ============================================================
 
   saveAndExecuteOrchestrator(): void {
 
-    this.executeOrchestratorPrompt();
+    this.orchestratorEditing = false;
 
+    this.executeOrchestratorPrompt();
   }
 
 
   // ============================================================
-  // COPY ORCHESTRATOR PROMPT
+  // ORCHESTRATOR DEPLOY
   // ============================================================
 
-  copyOrchestratorPrompt(): void {
+  deployOrchestrator(): void {
 
-    if (!this.orchestratorPrompt) {
+    const key =
+      this.normalizeIssueKey(
+        this.orchestratorIssueKey
+      );
+
+
+    if (!key) {
+
+      this.errorMessage =
+        'Veuillez entrer une clé Jira.';
 
       return;
     }
 
 
-    navigator.clipboard
-      .writeText(this.orchestratorPrompt)
+    if (!this.orchestratorSuccess) {
 
-      .then(() => {
+      this.errorMessage =
+        'Veuillez d’abord terminer OpenCode avec succès.';
+
+      return;
+    }
+
+
+    this.orchestrating = true;
+
+    this.orchestratorStep = 6;
+
+    this.orchestratorDeployResult = null;
+
+    this.orchestratorDeployed = false;
+
+    this.errorMessage = '';
+
+    this.successMessage = '';
+
+
+    const body = {
+
+      issue_key: key
+
+    };
+
+
+    console.log(
+      '🚀 ORCHESTRATOR - DEPLOY'
+    );
+
+    console.log(
+      '📦 Body:',
+      body
+    );
+
+
+    this.http.post<any>(
+
+      `${this.apiUrl}/api/git/deploy`,
+
+      body
+
+    ).subscribe({
+
+      next: (response) => {
 
         console.log(
-          '✅ Prompt orchestrateur copié'
+          '✅ Deploy orchestrateur:',
+          response
         );
 
-      })
 
-      .catch((error) => {
+        this.orchestratorDeployResult =
+          response;
+
+
+        this.orchestrating = false;
+
+
+        this.orchestratorDeployed =
+          response?.success === true;
+
+
+        if (this.orchestratorDeployed) {
+
+          this.orchestratorSuccess = true;
+
+          this.orchestratorStep = 6;
+
+          this.successMessage =
+            response?.message ||
+            'Projet déployé sur GitHub avec succès.';
+
+        } else {
+
+          this.orchestratorFailed = true;
+
+          this.orchestratorFailedStep = 6;
+
+          this.errorMessage =
+            response?.message ||
+            'Le déploiement a échoué.';
+        }
+      },
+
+
+      error: (error) => {
 
         console.error(
-          '❌ Erreur copie:',
+          '❌ Erreur Deploy orchestrateur:',
           error
         );
 
-      });
 
+        this.orchestrating = false;
+
+        this.orchestratorDeployed = false;
+
+        this.orchestratorFailed = true;
+
+        this.orchestratorFailedStep = 6;
+
+
+        this.errorMessage =
+          this.getApiErrorMessage(
+            error,
+            'Impossible de déployer le projet sur GitHub.'
+          );
+      }
+
+    });
   }
 
 
   // ============================================================
-  // STEP 1
-  // GET JIRA TICKET
+  // STEP 1 - JIRA
   // ============================================================
 
   getTicket(): void {
 
     const key =
-      this.stepIssueKey
-        .trim()
-        .toUpperCase();
+      this.normalizeIssueKey(
+        this.stepIssueKey
+      );
 
 
     if (!key) {
@@ -793,7 +1358,6 @@ export class AppComponent {
 
     this.stepIssueKey = key;
 
-
     this.stepLoading = true;
 
     this.errorMessage = '';
@@ -804,7 +1368,13 @@ export class AppComponent {
 
     this.stepPrompt = '';
 
+    this.stepGitResult = null;
+
     this.stepResult = '';
+
+    this.stepDeployResult = null;
+
+    this.stepDeployed = false;
 
     this.stepSuccess = false;
 
@@ -813,22 +1383,8 @@ export class AppComponent {
     this.stepFailedStep = 0;
 
 
-    this.stepTicketEditing = false;
-
-    this.stepAnalysisEditing = false;
-
-    this.stepPromptEditing = false;
-
-
-    this.stepTicketBackup = null;
-
-    this.stepAnalysisBackup = '';
-
-    this.stepPromptBackup = '';
-
-
     const url =
-      `${this.apiUrl}/api/jira/${key}`;
+      `${this.apiUrl}/api/jira/${encodeURIComponent(key)}`;
 
 
     console.log(
@@ -847,10 +1403,10 @@ export class AppComponent {
         );
 
 
-        this.stepTicket = response;
+        this.stepTicket =
+          response;
 
         this.stepLoading = false;
-
       },
 
 
@@ -864,21 +1420,19 @@ export class AppComponent {
 
         this.stepLoading = false;
 
-        this.stepTicket = null;
-
         this.stepFailed = true;
 
         this.stepFailedStep = 1;
 
 
         this.errorMessage =
-          error?.error?.detail ||
-          'Impossible de récupérer le ticket Jira.';
-
+          this.getApiErrorMessage(
+            error,
+            'Impossible de récupérer le ticket Jira.'
+          );
       }
 
     });
-
   }
 
 
@@ -889,7 +1443,6 @@ export class AppComponent {
   editStepTicket(): void {
 
     if (!this.stepTicket) {
-
       return;
     }
 
@@ -901,41 +1454,16 @@ export class AppComponent {
 
 
     this.stepTicketEditing = true;
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '✏️ Modification du ticket activée.'
-    );
-
   }
 
-
-  // ============================================================
-  // STEP 1 - SAVE TICKET
-  // ============================================================
 
   saveStepTicket(): void {
 
     this.stepTicketEditing = false;
 
     this.stepTicketBackup = null;
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '💾 Ticket modifié et conservé:',
-      this.stepTicket
-    );
-
   }
 
-
-  // ============================================================
-  // STEP 1 - IGNORE TICKET
-  // ============================================================
 
   ignoreStepTicket(): void {
 
@@ -945,27 +1473,17 @@ export class AppComponent {
         JSON.parse(
           JSON.stringify(this.stepTicketBackup)
         );
-
     }
 
 
     this.stepTicketEditing = false;
 
     this.stepTicketBackup = null;
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '↩️ Modification du ticket ignorée.'
-    );
-
   }
 
 
   // ============================================================
-  // STEP 2
-  // ANALYSIS
+  // STEP 2 - ANALYSIS
   // ============================================================
 
   analyzeTicket(): void {
@@ -987,14 +1505,19 @@ export class AppComponent {
 
     this.stepPrompt = '';
 
+    this.stepGitResult = null;
+
     this.stepResult = '';
+
+    this.stepDeployResult = null;
+
+    this.stepDeployed = false;
+
+    this.stepSuccess = false;
 
     this.stepFailed = false;
 
     this.stepFailedStep = 0;
-
-
-    this.stepPromptEditing = false;
 
 
     const body = {
@@ -1005,9 +1528,8 @@ export class AppComponent {
 
 
     console.log(
-      '🧠 STEP 2 - POST ANALYSIS'
+      '🧠 STEP 2 - ANALYSIS'
     );
-
 
     console.log(
       '📦 Body:',
@@ -1032,13 +1554,12 @@ export class AppComponent {
 
 
         this.stepAnalysis =
-          response.analysis;
+          response.analysis || '';
 
 
         this.stepAnalysisEditing = false;
 
         this.stepLoading = false;
-
       },
 
 
@@ -1058,13 +1579,13 @@ export class AppComponent {
 
 
         this.errorMessage =
-          error?.error?.detail ||
-          'Impossible de générer l’analyse.';
-
+          this.getApiErrorMessage(
+            error,
+            'Impossible de générer l’analyse.'
+          );
       }
 
     });
-
   }
 
 
@@ -1075,7 +1596,6 @@ export class AppComponent {
   editStepAnalysis(): void {
 
     if (!this.stepAnalysis) {
-
       return;
     }
 
@@ -1085,41 +1605,16 @@ export class AppComponent {
 
 
     this.stepAnalysisEditing = true;
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '✏️ Modification de l’analyse activée.'
-    );
-
   }
 
-
-  // ============================================================
-  // STEP 2 - SAVE ANALYSIS
-  // ============================================================
 
   saveStepAnalysis(): void {
 
     this.stepAnalysisEditing = false;
 
     this.stepAnalysisBackup = '';
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '💾 Analyse modifiée et conservée:',
-      this.stepAnalysis
-    );
-
   }
 
-
-  // ============================================================
-  // STEP 2 - IGNORE ANALYSIS
-  // ============================================================
 
   ignoreStepAnalysis(): void {
 
@@ -1130,20 +1625,11 @@ export class AppComponent {
     this.stepAnalysisEditing = false;
 
     this.stepAnalysisBackup = '';
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '↩️ Modification de l’analyse ignorée.'
-    );
-
   }
 
 
   // ============================================================
-  // STEP 3
-  // GENERATE PROMPT
+  // STEP 3 - PROMPT
   // ============================================================
 
   generateStepPrompt(): void {
@@ -1172,14 +1658,17 @@ export class AppComponent {
 
     this.stepPrompt = '';
 
+    this.stepGitResult = null;
+
     this.stepResult = '';
+
+    this.stepDeployResult = null;
+
+    this.stepDeployed = false;
 
     this.stepFailed = false;
 
     this.stepFailedStep = 0;
-
-
-    this.stepPromptEditing = false;
 
 
     const body = {
@@ -1192,9 +1681,8 @@ export class AppComponent {
 
 
     console.log(
-      '📝 STEP 3 - POST PROMPT'
+      '📝 STEP 3 - PROMPT'
     );
-
 
     console.log(
       '📦 Body:',
@@ -1219,13 +1707,16 @@ export class AppComponent {
 
 
         this.stepPrompt =
-          response.prompt;
+          response.prompt || '';
 
 
         this.stepPromptEditing = false;
 
         this.stepLoading = false;
 
+        if (this.stepPrompt) {
+          this.prepareGit();
+        }
       },
 
 
@@ -1245,13 +1736,13 @@ export class AppComponent {
 
 
         this.errorMessage =
-          error?.error?.detail ||
-          'Impossible de générer le prompt.';
-
+          this.getApiErrorMessage(
+            error,
+            'Impossible de générer le prompt.'
+          );
       }
 
     });
-
   }
 
 
@@ -1262,7 +1753,6 @@ export class AppComponent {
   editStepPrompt(): void {
 
     if (!this.stepPrompt) {
-
       return;
     }
 
@@ -1272,41 +1762,16 @@ export class AppComponent {
 
 
     this.stepPromptEditing = true;
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '✏️ Modification du prompt activée.'
-    );
-
   }
 
-
-  // ============================================================
-  // STEP 3 - SAVE PROMPT
-  // ============================================================
 
   saveStepPrompt(): void {
 
     this.stepPromptEditing = false;
 
     this.stepPromptBackup = '';
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '💾 Prompt modifié et conservé:',
-      this.stepPrompt
-    );
-
   }
 
-
-  // ============================================================
-  // STEP 3 - IGNORE PROMPT
-  // ============================================================
 
   ignoreStepPrompt(): void {
 
@@ -1317,28 +1782,170 @@ export class AppComponent {
     this.stepPromptEditing = false;
 
     this.stepPromptBackup = '';
-
-    this.errorMessage = '';
-
-
-    console.log(
-      '↩️ Modification du prompt ignorée.'
-    );
-
   }
 
 
   // ============================================================
-  // STEP 4
-  // EXECUTE OPENCODE
+  // STEP 4 - GIT PREPARATION
+  // ============================================================
+
+  prepareGit(): void {
+
+    const key =
+      this.normalizeIssueKey(
+        this.stepIssueKey
+      );
+
+
+    console.log(
+      '============================================'
+    );
+
+    console.log(
+      '🔀 STEP 4 - GIT PREPARE'
+    );
+
+    console.log(
+      '🎯 Jira Issue Key:',
+      key
+    );
+
+    console.log(
+      '============================================'
+    );
+
+
+    if (!key) {
+
+      this.errorMessage =
+        'Veuillez entrer une clé Jira.';
+
+      return;
+    }
+
+
+    this.stepIssueKey = key;
+
+    this.stepLoading = true;
+
+    this.errorMessage = '';
+
+    this.successMessage = '';
+
+    this.stepGitResult = null;
+
+    this.stepSuccess = false;
+
+    this.stepFailed = false;
+
+    this.stepFailedStep = 0;
+
+
+    const body = {
+
+      issue_key: key,
+
+      github_url: this.stepRepositoryUrl.trim(),
+
+    };
+
+
+    console.log(
+      '📦 BODY /api/git/prepare:',
+      JSON.stringify(body, null, 2)
+    );
+
+
+    console.log(
+      '🔗 URL:',
+      `${this.apiUrl}/api/git/prepare`
+    );
+
+
+    this.http.post<any>(
+
+      `${this.apiUrl}/api/git/prepare`,
+
+      body
+
+    ).subscribe({
+
+      next: (response) => {
+
+        console.log(
+          '✅ Git preparation terminée:',
+          response
+        );
+
+
+        this.stepGitResult =
+          response;
+
+
+        this.stepLoading = false;
+
+
+        this.stepSuccess =
+          response?.success === true;
+
+
+        if (this.stepSuccess) {
+
+          this.successMessage =
+            response?.message ||
+            '✅ URL GitHub vérifiée.';
+
+        } else {
+
+          this.stepFailed = true;
+
+          this.stepFailedStep = 4;
+
+          this.errorMessage =
+            response?.message ||
+            'La préparation Git a échoué.';
+        }
+      },
+
+
+      error: (error) => {
+
+        console.error(
+          '❌ Erreur Git:',
+          error
+        );
+
+
+        this.stepLoading = false;
+
+        this.stepSuccess = false;
+
+        this.stepFailed = true;
+
+        this.stepFailedStep = 4;
+
+
+        this.errorMessage =
+          this.getApiErrorMessage(
+            error,
+            'Impossible de préparer le repository Git.'
+          );
+      }
+
+    });
+  }
+
+
+  // ============================================================
+  // STEP 5 - OPENCODE
   // ============================================================
 
   executeStepPrompt(): void {
 
     const key =
-      this.stepIssueKey
-        .trim()
-        .toUpperCase();
+      this.normalizeIssueKey(
+        this.stepIssueKey
+      );
 
 
     if (!key) {
@@ -1359,6 +1966,26 @@ export class AppComponent {
     }
 
 
+    if (!this.stepGitResult) {
+
+      this.errorMessage =
+        'Veuillez d’abord préparer le repository Git.';
+
+      return;
+    }
+
+
+    if (
+      this.stepGitResult?.success !== true
+    ) {
+
+      this.errorMessage =
+        'La préparation Git n’a pas réussi.';
+
+      return;
+    }
+
+
     if (this.stepPromptEditing) {
 
       this.errorMessage =
@@ -1372,6 +1999,8 @@ export class AppComponent {
 
     this.errorMessage = '';
 
+    this.successMessage = '';
+
     this.stepResult = '';
 
     this.stepSuccess = false;
@@ -1379,6 +2008,10 @@ export class AppComponent {
     this.stepFailed = false;
 
     this.stepFailedStep = 0;
+
+    this.stepDeployResult = null;
+
+    this.stepDeployed = false;
 
 
     const body = {
@@ -1391,9 +2024,8 @@ export class AppComponent {
 
 
     console.log(
-      '▶️ STEP 4 - EXECUTE OPENCODE'
+      '🚀 STEP 5 - OPENCODE'
     );
-
 
     console.log(
       '📦 Body:',
@@ -1432,10 +2064,17 @@ export class AppComponent {
 
           this.stepFailed = true;
 
-          this.stepFailedStep = 4;
+          this.stepFailedStep = 5;
 
+          this.errorMessage =
+            response?.message ||
+            'OpenCode a échoué.';
+
+        } else {
+
+          this.successMessage =
+            'OpenCode a terminé avec succès.';
         }
-
       },
 
 
@@ -1455,17 +2094,155 @@ export class AppComponent {
 
         this.stepFailed = true;
 
-        this.stepFailedStep = 4;
+        this.stepFailedStep = 5;
 
 
         this.errorMessage =
-          error?.error?.detail ||
-          'Erreur pendant l’exécution de OpenCode.';
-
+          this.getApiErrorMessage(
+            error,
+            'Erreur pendant l’exécution de OpenCode.'
+          );
       }
 
     });
+  }
 
+
+  // ============================================================
+  // STEP 6 - DEPLOY
+  // ============================================================
+
+  deployStepByStep(): void {
+
+    const key =
+      this.normalizeIssueKey(
+        this.stepIssueKey
+      );
+
+
+    if (!key) {
+
+      this.errorMessage =
+        'Veuillez entrer une clé Jira.';
+
+      return;
+    }
+
+
+    if (!this.stepSuccess) {
+
+      this.errorMessage =
+        'Veuillez d’abord terminer OpenCode avec succès.';
+
+      return;
+    }
+
+
+    this.stepLoading = true;
+
+    this.stepDeployResult = null;
+
+    this.stepDeployed = false;
+
+    this.errorMessage = '';
+
+    this.successMessage = '';
+
+    this.stepFailed = false;
+
+    this.stepFailedStep = 0;
+
+
+    const body = {
+
+      issue_key: key
+
+    };
+
+
+    console.log(
+      '🚀 STEP 6 - DEPLOY'
+    );
+
+    console.log(
+      '📦 Body:',
+      body
+    );
+
+
+    this.http.post<any>(
+
+      `${this.apiUrl}/api/git/deploy`,
+
+      body
+
+    ).subscribe({
+
+      next: (response) => {
+
+        console.log(
+          '✅ Deploy Step-by-Step:',
+          response
+        );
+
+
+        this.stepDeployResult =
+          response;
+
+
+        this.stepLoading = false;
+
+
+        this.stepDeployed =
+          response?.success === true;
+
+
+        if (this.stepDeployed) {
+
+          this.stepSuccess = true;
+
+          this.successMessage =
+            response?.message ||
+            'Projet déployé sur GitHub avec succès.';
+
+        } else {
+
+          this.stepFailed = true;
+
+          this.stepFailedStep = 6;
+
+          this.errorMessage =
+            response?.message ||
+            'Le déploiement a échoué.';
+        }
+      },
+
+
+      error: (error) => {
+
+        console.error(
+          '❌ Erreur Deploy:',
+          error
+        );
+
+
+        this.stepLoading = false;
+
+        this.stepDeployed = false;
+
+        this.stepFailed = true;
+
+        this.stepFailedStep = 6;
+
+
+        this.errorMessage =
+          this.getApiErrorMessage(
+            error,
+            'Impossible de déployer le projet sur GitHub.'
+          );
+      }
+
+    });
   }
 
 
@@ -1476,7 +2253,6 @@ export class AppComponent {
   copyStepPrompt(): void {
 
     if (!this.stepPrompt) {
-
       return;
     }
 
@@ -1490,7 +2266,11 @@ export class AppComponent {
           '✅ Prompt copié'
         );
 
+
+        this.successMessage =
+          'Prompt copié dans le presse-papiers.';
       })
+
 
       .catch((error) => {
 
@@ -1499,8 +2279,50 @@ export class AppComponent {
           error
         );
 
-      });
 
+        this.errorMessage =
+          'Impossible de copier le prompt.';
+      });
+  }
+
+
+  // ============================================================
+  // COPY ORCHESTRATOR PROMPT
+  // ============================================================
+
+  copyOrchestratorPrompt(): void {
+
+    if (!this.orchestratorPrompt) {
+      return;
+    }
+
+
+    navigator.clipboard
+      .writeText(this.orchestratorPrompt)
+
+      .then(() => {
+
+        console.log(
+          '✅ Prompt orchestrateur copié'
+        );
+
+
+        this.successMessage =
+          'Prompt copié dans le presse-papiers.';
+      })
+
+
+      .catch((error) => {
+
+        console.error(
+          '❌ Erreur copie:',
+          error
+        );
+
+
+        this.errorMessage =
+          'Impossible de copier le prompt.';
+      });
   }
 
 }

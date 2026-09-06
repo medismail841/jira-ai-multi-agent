@@ -1,921 +1,1994 @@
 # ============================================================
 # agents/git_agent.py
-# GITHUB DEPLOY AI AGENT — MCP VERSION
+#
+# GIT PREPARATION AGENT
+#
+# RESPONSABILITÉ :
+#
+# GitHub URL
+#      ↓
+# git clone
+#      ↓
+# dossier local
+#      ↓
+# git status
+#      ↓
+# .git ?
+#   /      \
+# OUI      NON
+#  ↓        ↓
+# continuer ERROR
+#           "projet n'est pas git"
+#  ↓
+# git fetch origin
+#  ↓
+# détecter main / master
+#  ↓
+# git switch main/master
+#  ↓
+# git pull origin main/master
+#  ↓
+# vérifier branche ISSUE
+#  ↓
+# créer / switch ISSUE
+#  ↓
+# git_ready = True
+#
+# IMPORTANT :
+#
+# ❌ Pas de git init
+# ❌ Pas de git add
+# ❌ Pas de git commit
+# ❌ Pas de git push
+# ❌ Pas de Pull Request
+# ❌ Pas d'OpenCode
+#
+# Le Git Agent est responsable du CLONE
+# et de la préparation de la branche Jira.
+#
 # ============================================================
 
 import os
+import subprocess
 
 from dotenv import load_dotenv
-
-from langchain_core.messages import (
-    HumanMessage,
-    SystemMessage,
-)
-
-from langchain_ollama import ChatOllama
-
-from langgraph.graph import (
-    StateGraph,
-    END,
-)
-
-from langgraph.prebuilt import ToolNode
-
-from langchain_mcp_adapters.client import (
-    MultiServerMCPClient,
-)
-
-from graph.state import AgentState
 
 
 # ============================================================
 # ENVIRONMENT
 # ============================================================
 
-load_dotenv(
-    override=True
-)
+load_dotenv()
 
-print("✅ .env chargé")
-
-
-# ============================================================
-# OLLAMA
-# ============================================================
-
-OLLAMA_API_KEY = os.getenv(
-    "OLLAMA_API_KEY"
-)
-
-if not OLLAMA_API_KEY:
-
-    raise ValueError(
-        "❌ OLLAMA_API_KEY manquante."
-    )
-
-
-OLLAMA_MODEL = os.getenv(
-    "OLLAMA_MODEL",
-    "gemma4:31b-cloud"
-)
-
-
-llm = ChatOllama(
-
-    model=OLLAMA_MODEL,
-
-    base_url="https://ollama.com",
-
-    client_kwargs={
-
-        "headers": {
-
-            "Authorization":
-                f"Bearer {OLLAMA_API_KEY}"
-
-        }
-
-    },
-
-    temperature=0,
-
-)
-
-
-print(
-    f"✅ Ollama configuré : {OLLAMA_MODEL}"
+PROJECT_DIR = os.getenv(
+    "OPENCODE_PROJECT_DIR"
 )
 
 
 # ============================================================
-# GITHUB MCP
+# HELPER : RUN GIT COMMAND
 # ============================================================
 
-GIT_MCP_URL = os.getenv(
-    "GIT_MCP_URL"
-)
-
-GITHUB_PERSONAL_ACCESS_TOKEN = os.getenv(
-    "GITHUB_PERSONAL_ACCESS_TOKEN"
-)
-
-
-if not GIT_MCP_URL:
-
-    raise ValueError(
-        "❌ GIT_MCP_URL manquante."
-    )
-
-
-if not GITHUB_PERSONAL_ACCESS_TOKEN:
-
-    raise ValueError(
-        "❌ GITHUB_PERSONAL_ACCESS_TOKEN manquant."
-    )
-
-
-print(
-    "✅ Git MCP URL chargée"
-)
-
-print(
-    "✅ GitHub Personal Access Token chargé"
-)
-
-
-# ============================================================
-# GITHUB REPOSITORY
-# ============================================================
-
-GITHUB_REPOSITORY = os.getenv(
-    "GITHUB_REPOSITORY"
-)
-
-GITHUB_BRANCH = os.getenv(
-    "GITHUB_BRANCH",
-    "main"
-)
-
-
-if not GITHUB_REPOSITORY:
-
-    raise ValueError(
-        "❌ GITHUB_REPOSITORY manquant."
-    )
-
-
-# ------------------------------------------------------------
-# Parse owner / repository
-# ------------------------------------------------------------
-
-repository_parts = (
-    GITHUB_REPOSITORY
-    .strip()
-    .strip("/")
-    .split("/")
-)
-
-
-if len(repository_parts) != 2:
-
-    raise ValueError(
-        "❌ GITHUB_REPOSITORY doit avoir "
-        "le format : owner/repository"
-    )
-
-
-GITHUB_OWNER = repository_parts[0]
-
-GITHUB_REPO = repository_parts[1]
-
-
-print(
-    f"✅ GitHub Owner : {GITHUB_OWNER}"
-)
-
-print(
-    f"✅ GitHub Repository : {GITHUB_REPO}"
-)
-
-print(
-    f"✅ GitHub Branch : {GITHUB_BRANCH}"
-)
-
-
-# ============================================================
-# MCP CLIENT
-# ============================================================
-
-async def create_git_mcp_client():
-
-    print(
-        "\n🔌 Connexion au serveur GitHub MCP..."
-    )
-
-    git_config = {
-
-        "transport":
-            "streamable_http",
-
-        "url":
-            GIT_MCP_URL,
-
-        "headers": {
-
-            "Authorization":
-                f"Bearer {GITHUB_PERSONAL_ACCESS_TOKEN}"
-
-        }
-
-    }
-
-    mcp_client = MultiServerMCPClient({
-
-        "github":
-            git_config
-
-    })
-
-    print(
-        "✅ Client GitHub MCP créé"
-    )
-
-    return mcp_client
-
-
-# ============================================================
-# GET MCP TOOLS
-# ============================================================
-
-async def get_git_mcp_tools(
-    mcp_client
-):
-
-    print(
-        "\n🔧 Récupération des Tools GitHub MCP..."
-    )
+def run_git_command(
+    command: list[str],
+    cwd: str
+) -> dict:
 
     try:
 
-        tools = await mcp_client.get_tools()
-
-    except Exception as e:
-
-        raise RuntimeError(
-            f"""
-❌ Impossible de récupérer
-les Tools GitHub MCP.
-
-Erreur :
-
-{e}
-"""
+        print(
+            "\n▶️ Commande : "
+            + " ".join(command)
         )
 
-
-    if not tools:
-
-        raise RuntimeError(
-            "❌ Aucun Tool GitHub MCP disponible."
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            shell=False
         )
 
+        stdout = (
+            result.stdout or ""
+        ).strip()
 
-    print(
-        "\n🔧 Tools GitHub MCP disponibles :"
-    )
-
-
-    for tool in tools:
+        stderr = (
+            result.stderr or ""
+        ).strip()
 
         print(
-            f"   → {tool.name}"
+            f"   Return code : "
+            f"{result.returncode}"
         )
 
+        if stdout:
 
-    print(
-        f"\n✅ {len(tools)} Tool(s) GitHub MCP récupéré(s)."
-    )
+            print("\n   STDOUT :")
+            print(stdout)
 
+        if stderr:
 
-    return tools
-
-
-# ============================================================
-# GITHUB DEPLOY AGENT
-# ============================================================
-
-async def git_deploy_agent(
-    state: AgentState
-) -> dict:
-
-    print(
-        "\n"
-        + "=" * 60
-    )
-
-    print(
-        "🚀 GITHUB DEPLOY AI AGENT"
-    )
-
-    print(
-        "=" * 60
-    )
-
-
-    # ========================================================
-    # STATE
-    # ========================================================
-
-    issue_key = state.get(
-        "issue_key",
-        ""
-    )
-
-    opencode_result = state.get(
-        "opencode_result",
-        ""
-    )
-
-    coding_instruction = state.get(
-        "coding_instruction",
-        ""
-    )
-
-
-    issue_key = (
-        issue_key
-        .strip()
-        .upper()
-    )
-
-
-    if not issue_key:
-
-        raise ValueError(
-            "❌ Issue key manquante."
-        )
-
-
-    print(
-        f"Ticket     : {issue_key}"
-    )
-
-    print(
-        f"Repository : {GITHUB_REPOSITORY}"
-    )
-
-    print(
-        f"Branch     : {GITHUB_BRANCH}"
-    )
-
-
-    # ========================================================
-    # MCP CLIENT
-    # ========================================================
-
-    mcp_client = await (
-        create_git_mcp_client()
-    )
-
-
-    # ========================================================
-    # MCP TOOLS
-    # ========================================================
-
-    mcp_tools = await (
-        get_git_mcp_tools(
-            mcp_client
-        )
-    )
-
-
-    # ========================================================
-    # TOOL CHECK
-    # ========================================================
-
-    available_tool_names = {
-
-        tool.name
-        for tool in mcp_tools
-
-    }
-
-
-    print(
-        "\n🔎 Vérification des Tools nécessaires..."
-    )
-
-
-    if "push_files" in available_tool_names:
-
-        print(
-            "   ✅ push_files disponible"
-        )
-
-    else:
-
-        print(
-            "   ⚠️ push_files indisponible"
-        )
-
-
-    if "get_file_contents" in available_tool_names:
-
-        print(
-            "   ✅ get_file_contents disponible"
-        )
-
-    else:
-
-        print(
-            "   ⚠️ get_file_contents indisponible"
-        )
-
-
-    # ========================================================
-    # LLM + MCP TOOLS
-    # ========================================================
-
-    print(
-        "\n🧠 Connexion des Tools au LLM..."
-    )
-
-
-    llm_with_tools = llm.bind_tools(
-        mcp_tools
-    )
-
-
-    print(
-        "✅ Ollama connecté aux Tools MCP"
-    )
-
-
-    # ========================================================
-    # AGENT NODE
-    # ========================================================
-
-    def agent_node(
-        state: AgentState
-    ):
-
-        print(
-            "\n"
-            + "-" * 60
-        )
-
-        print(
-            "🤖 GITHUB AI AGENT NODE"
-        )
-
-        print(
-            "-" * 60
-        )
-
-
-        messages = state.get(
-            "messages",
-            []
-        )
-
-
-        if not messages:
-
-            raise ValueError(
-                "❌ Aucun message dans AgentState."
-            )
-
-
-        response = (
-            llm_with_tools.invoke(
-                messages
-            )
-        )
-
-
-        # ----------------------------------------------------
-        # TOOL CALL DEBUG
-        # ----------------------------------------------------
-
-        if response.tool_calls:
-
-            print(
-                f"\n🔧 {len(response.tool_calls)} Tool(s) demandé(s)"
-            )
-
-
-            for tool_call in response.tool_calls:
-
-                print(
-                    f"   Tool : {tool_call['name']}"
-                )
-
-                print(
-                    f"   Args : {tool_call['args']}"
-                )
-
-        else:
-
-            print(
-                "\n💬 Le LLM répond directement."
-            )
-
+            print("\n   STDERR :")
+            print(stderr)
 
         return {
 
-            "messages": [
+            "success":
+                result.returncode == 0,
 
-                response
+            "stdout":
+                stdout,
 
-            ]
+            "stderr":
+                stderr,
 
+            "return_code":
+                result.returncode
         }
 
+    except Exception as e:
 
-    # ========================================================
-    # TOOL NODE
-    # ========================================================
-
-    tool_node = ToolNode(
-        mcp_tools
-    )
-
-
-    # ========================================================
-    # ROUTER
-    # ========================================================
-
-    def should_continue(
-        state: AgentState
-    ):
-
-        messages = state.get(
-            "messages",
-            []
+        print(
+            f"\n❌ Exception Git : {e}"
         )
 
+        return {
 
-        if not messages:
+            "success":
+                False,
 
-            return END
+            "stdout":
+                "",
 
+            "stderr":
+                str(e),
 
-        last_message = messages[-1]
-
-
-        if getattr(
-            last_message,
-            "tool_calls",
-            None
-        ):
-
-            return "use_tool"
-
-
-        return END
-
-
-    # ========================================================
-    # LANGGRAPH
-    # ========================================================
-
-    graph = StateGraph(
-        AgentState
-    )
-
-
-    graph.add_node(
-        "agent",
-        agent_node
-    )
-
-
-    graph.add_node(
-        "use_tool",
-        tool_node
-    )
-
-
-    graph.set_entry_point(
-        "agent"
-    )
-
-
-    graph.add_conditional_edges(
-
-        "agent",
-
-        should_continue,
-
-        {
-
-            "use_tool":
-                "use_tool",
-
-            END:
-                END,
-
+            "return_code":
+                -1
         }
 
-    )
 
+# ============================================================
+# HELPER : ERROR STATE
+# ============================================================
 
-    graph.add_edge(
-        "use_tool",
-        "agent"
-    )
-
-
-    github_graph = graph.compile()
-
+def git_error_state(
+    project_dir: str | None,
+    github_url: str | None,
+    issue_key: str | None,
+    message: str,
+    git_status: str = "",
+    git_branch: str = ""
+) -> dict:
 
     print(
-        "\n✅ LangGraph GitHub compilé"
+        "\n❌ GIT ERROR : "
+        + message
     )
 
+    return {
 
-    # ========================================================
-    # SYSTEM MESSAGE
-    # ========================================================
+        "git_ready":
+            False,
 
-    system_message = SystemMessage(
+        "project_dir":
+            project_dir,
 
-        content=f"""
+        "github_url":
+            github_url,
 
-Tu es un AI Agent spécialisé dans
-la publication de projets sur GitHub.
-
-Tu disposes de Tools GitHub MCP.
-
-==================================================
-REPOSITORY
-==================================================
-
-Owner :
-
-{GITHUB_OWNER}
-
-Repository :
-
-{GITHUB_REPO}
-
-Branch :
-
-{GITHUB_BRANCH}
-
-==================================================
-TICKET
-==================================================
-
-{issue_key}
-
-==================================================
-MISSION
-==================================================
-
-Tu dois publier sur GitHub le travail
-réalisé par OpenCode.
-
-Tu dois utiliser exclusivement les
-Tools GitHub MCP disponibles.
-
-==================================================
-IMPORTANT
-==================================================
-
-Les Tools GitHub MCP manipulent
-directement GitHub.
-
-Ils ne donnent pas nécessairement accès
-au filesystem local du projet.
-
-Tu ne dois donc jamais prétendre avoir
-inspecté les fichiers locaux si tu ne les
-as pas réellement reçus.
-
-==================================================
-OPERATIONS
-==================================================
-
-1. Vérifier le repository.
-
-2. Vérifier les fichiers ou informations
-   accessibles avec les Tools MCP.
-
-3. Déterminer les opérations nécessaires.
-
-4. Si les fichiers à publier sont disponibles,
-   utiliser le Tool approprié.
-
-5. Pour plusieurs fichiers, privilégier
-   push_files lorsqu'il est disponible.
-
-6. Créer un commit professionnel.
-
-7. Publier réellement les changements.
-
-8. Retourner uniquement les opérations
-   réellement effectuées.
-
-==================================================
-REGLES DE SECURITE
-==================================================
-
-- Ne jamais inventer une opération.
-
-- Ne jamais prétendre avoir effectué
-  un push sans Tool MCP.
-
-- Ne jamais prétendre avoir effectué
-  un commit sans Tool MCP.
-
-- Ne jamais révéler de token.
-
-- Ne jamais travailler sur un autre repository.
-
-- Ne jamais travailler sur une autre branch.
-
-==================================================
-RESULTAT OPENCODE
-==================================================
-
-{opencode_result}
-
-==================================================
-INSTRUCTION
-==================================================
-
-{coding_instruction}
-
-"""
-
-    )
-
-
-    # ========================================================
-    # HUMAN MESSAGE
-    # ========================================================
-
-    human_message = HumanMessage(
-
-        content=f"""
-
-Publie le résultat du travail OpenCode
-sur GitHub.
-
-Ticket :
-
-{issue_key}
-
-Repository :
-
-{GITHUB_OWNER}/{GITHUB_REPO}
-
-Branch :
-
-{GITHUB_BRANCH}
-
-Utilise les Tools GitHub MCP.
-
-Effectue uniquement les opérations
-que tu peux réellement effectuer.
-
-À la fin, retourne :
-
-- les Tools utilisés
-- les opérations effectuées
-- le commit créé
-- le résultat du push
-- les éventuelles erreurs
-
-Ne simule aucune opération.
-
-"""
-
-    )
-
-
-    # ========================================================
-    # INITIAL STATE
-    # ========================================================
-
-    initial_state = {
-
-        "messages": [
-
-            system_message,
-
-            human_message
-
-        ],
+        "repository_url":
+            github_url,
 
         "issue_key":
             issue_key,
 
-        "opencode_result":
-            opencode_result,
-
-        "coding_instruction":
-            coding_instruction,
-
-        "git_repo":
-            GITHUB_REPOSITORY,
+        "git_status":
+            git_status,
 
         "git_branch":
-            GITHUB_BRANCH,
+            git_branch,
 
+        "git_branch_created":
+            False,
+
+        "git_error":
+            message,
+
+        "error":
+            message
     }
 
 
-    # ========================================================
-    # EXECUTION
-    # ========================================================
+# ============================================================
+# GET PROJECT DIRECTORY
+# ============================================================
 
-    print(
-        "\n🚀 Exécution du GitHub AI Agent..."
+def get_project_dir() -> str | None:
+
+    if not PROJECT_DIR:
+        return None
+
+    return os.path.abspath(
+        PROJECT_DIR
     )
 
 
-    try:
+# ============================================================
+# STEP 1 — GIT CLONE
+# ============================================================
 
-        result = await (
-            github_graph.ainvoke(
-                initial_state
+def clone_repository(
+    repository_url: str
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print("📥 STEP 1 — GIT CLONE")
+    print("=" * 70)
+
+    if not repository_url:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                "URL GitHub manquante."
+        }
+
+    repository_url = str(
+        repository_url
+    ).strip()
+
+    print(
+        f"\n🔗 GitHub URL : "
+        f"{repository_url}"
+    )
+
+    project_dir = get_project_dir()
+
+    if not project_dir:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                (
+                    "OPENCODE_PROJECT_DIR "
+                    "n'est pas défini dans .env."
+                )
+        }
+
+    print(
+        f"📁 Destination : "
+        f"{project_dir}"
+    )
+
+    # ========================================================
+    # DESTINATION
+    # ========================================================
+
+    if os.path.exists(project_dir):
+
+        if not os.path.isdir(project_dir):
+
+            return {
+
+                "success":
+                    False,
+
+                "error":
+                    (
+                        "OPENCODE_PROJECT_DIR "
+                        "existe mais ce n'est pas "
+                        "un dossier."
+                    )
+            }
+
+        try:
+
+            items = os.listdir(
+                project_dir
             )
+
+        except Exception as e:
+
+            return {
+
+                "success":
+                    False,
+
+                "error":
+                    (
+                        "Impossible de lire "
+                        f"le dossier local : {e}"
+                    )
+            }
+
+        if items:
+
+            return {
+
+                "success":
+                    False,
+
+                "error":
+                    (
+                        "Impossible de faire git clone : "
+                        "le dossier local existe déjà "
+                        "et n'est pas vide."
+                    ),
+
+                "project_directory":
+                    project_dir
+            }
+
+    else:
+
+        parent_dir = os.path.dirname(
+            project_dir
         )
 
-    except Exception as e:
+        try:
+
+            os.makedirs(
+                parent_dir,
+                exist_ok=True
+            )
+
+        except Exception as e:
+
+            return {
+
+                "success":
+                    False,
+
+                "error":
+                    (
+                        "Impossible de créer "
+                        f"le dossier parent : {e}"
+                    )
+            }
+
+    # ========================================================
+    # CLONE
+    # ========================================================
+
+    clone_result = run_git_command(
+
+        [
+            "git",
+            "clone",
+            repository_url,
+            project_dir
+        ],
+
+        os.path.dirname(
+            project_dir
+        )
+    )
+
+    if not clone_result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "repository_url":
+                repository_url,
+
+            "project_directory":
+                project_dir,
+
+            "error":
+                (
+                    clone_result["stderr"]
+                    or "git clone a échoué."
+                ),
+
+            "stdout":
+                clone_result["stdout"],
+
+            "stderr":
+                clone_result["stderr"],
+
+            "return_code":
+                clone_result["return_code"]
+        }
+
+    if not os.path.isdir(project_dir):
+
+        return {
+
+            "success":
+                False,
+
+            "repository_url":
+                repository_url,
+
+            "project_directory":
+                project_dir,
+
+            "error":
+                (
+                    "git clone semble avoir réussi "
+                    "mais le dossier local n'existe pas."
+                )
+        }
+
+    print(
+        "\n✅ git clone terminé."
+    )
+
+    return {
+
+        "success":
+            True,
+
+        "repository_url":
+            repository_url,
+
+        "project_directory":
+            project_dir,
+
+        "message":
+            "Repository cloné avec succès."
+    }
+
+
+# ============================================================
+# STEP 2 — VERIFY .GIT
+# ============================================================
+
+def verify_git_repository(
+    project_dir: str
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print("🔎 STEP 2 — VERIFY .GIT")
+    print("=" * 70)
+
+    git_dir = os.path.join(
+        project_dir,
+        ".git"
+    )
+
+    if not os.path.exists(git_dir):
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                (
+                    "Le projet n'est pas git : "
+                    "le dossier .git est absent."
+                )
+        }
+
+    print(
+        "\n✅ .git trouvé."
+    )
+
+    return {
+
+        "success":
+            True,
+
+        "git_directory":
+            git_dir
+    }
+
+
+# ============================================================
+# STEP 3 — GIT STATUS
+# ============================================================
+
+def get_git_status(
+    project_dir: str
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print("📊 STEP 3 — GIT STATUS")
+    print("=" * 70)
+
+    result = run_git_command(
+
+        [
+            "git",
+            "status"
+        ],
+
+        project_dir
+    )
+
+    if not result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                (
+                    "git status a échoué.\n"
+                    + result["stderr"]
+                ),
+
+            "git_status":
+                result["stdout"]
+        }
+
+    return {
+
+        "success":
+            True,
+
+        "git_status":
+            result["stdout"]
+    }
+
+
+
+
+
+
+
+
+
+
+# ============================================================
+# STEP 3B — VERIFY GIT REMOTE
+# ============================================================
+
+def verify_git_remote(
+    project_dir: str,
+    github_url: str | None
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print("🔗 STEP 3B — VERIFY GIT REMOTE")
+    print("=" * 70)
+
+    if not github_url:
+        return {
+            "success": False,
+            "error": (
+                "URL GitHub manquante : impossible de vérifier "
+                "le remote 'origin'."
+            )
+        }
+
+    result = run_git_command(
+        [
+            "git",
+            "remote",
+            "-v"
+        ],
+        project_dir
+    )
+
+    if not result["success"]:
+
+        return {
+            "success": False,
+            "error": (
+                "git remote -v a échoué.\n"
+                + result["stderr"]
+            )
+        }
+
+    remote_url = None
+
+    for line in result["stdout"].splitlines():
+
+        parts = line.split()
+
+        if len(parts) >= 3:
+
+            remote_name = parts[0]
+            url = parts[1]
+            remote_type = parts[2]
+
+            if (
+                remote_name == "origin"
+                and remote_type == "(fetch)"
+            ):
+                remote_url = url
+                break
+
+    if not remote_url:
+
+        return {
+            "success": False,
+            "error": (
+                "Aucun remote 'origin' "
+                "n'a été trouvé."
+            )
+        }
+
+    # Normalisation des URLs
+    local_url = remote_url.rstrip("/")
+
+    expected_url = str(
+        github_url
+    ).strip().rstrip("/")
+
+    if local_url.endswith(".git"):
+        local_url = local_url[:-4]
+
+    if expected_url.endswith(".git"):
+        expected_url = expected_url[:-4]
+
+    print(
+        f"\n📍 Remote local : {local_url}"
+    )
+
+    print(
+        f"🔗 GitHub attendu : {expected_url}"
+    )
+
+    if local_url.lower() != expected_url.lower():
+
+        return {
+            "success": False,
+            "error": (
+                "Le remote Git local ne correspond "
+                "pas au repository GitHub attendu.\n"
+                f"Remote local : {local_url}\n"
+                f"GitHub attendu : {expected_url}"
+            ),
+            "remote_url": remote_url
+        }
+
+    print(
+        "\n✅ URL GitHub vérifiée."
+    )
+
+    return {
+        "success": True,
+        "remote_url": remote_url,
+        "github_url": github_url
+    }
+
+
+
+
+def stash_local_changes(project_dir: str, issue_key: str) -> dict:
+    result = run_git_command(
+        ["git", "status", "--porcelain"],
+        project_dir
+    )
+
+    if not result["success"]:
+        return {
+            "success": False,
+            "error": "Impossible de vérifier les modifications locales.\n"
+            + result["stderr"]
+        }
+
+    if not result["stdout"]:
+        return {"success": True, "stashed": False}
+
+    stash_result = run_git_command(
+        [
+            "git",
+            "stash",
+            "push",
+            "--include-untracked",
+            "--message",
+            f"Jira AI avant préparation {issue_key}"
+        ],
+        project_dir
+    )
+
+    if not stash_result["success"]:
+        return {
+            "success": False,
+            "error": "Impossible de sauvegarder les modifications locales.\n"
+            + stash_result["stderr"]
+        }
+
+    return {"success": True, "stashed": True}
+
+
+def restore_stashed_changes(project_dir: str) -> dict:
+    result = run_git_command(
+        ["git", "stash", "pop"],
+        project_dir
+    )
+
+    if not result["success"]:
+        return {
+            "success": False,
+            "error": "La restauration des modifications locales a échoué.\n"
+            + result["stderr"]
+        }
+
+    return {"success": True}
+
+
+# ============================================================
+# STEP 4 — FETCH ORIGIN
+# ============================================================
+
+def fetch_origin(
+    project_dir: str
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print("🌐 STEP 4 — GIT FETCH ORIGIN")
+    print("=" * 70)
+
+    result = run_git_command(
+
+        [
+            "git",
+            "fetch",
+            "origin"
+        ],
+
+        project_dir
+    )
+
+    if not result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                (
+                    "git fetch origin a échoué.\n"
+                    + result["stderr"]
+                )
+        }
+
+    print(
+        "\n✅ git fetch origin terminé."
+    )
+
+    return {
+
+        "success":
+            True
+    }
+
+
+# ============================================================
+# STEP 5 — DETECT MAIN / MASTER
+# ============================================================
+
+def detect_main_branch(
+    project_dir: str
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print("🌿 STEP 5 — DETECT MAIN / MASTER")
+    print("=" * 70)
+
+    # ========================================================
+    # ORIGIN HEAD
+    # ========================================================
+
+    head_result = run_git_command(
+
+        [
+            "git",
+            "symbolic-ref",
+            "--short",
+            "refs/remotes/origin/HEAD"
+        ],
+
+        project_dir
+    )
+
+    if head_result["success"]:
+
+        remote_head = (
+            head_result["stdout"]
+            .strip()
+        )
+
+        if remote_head.startswith(
+            "origin/"
+        ):
+
+            branch = remote_head[
+                len("origin/"):
+            ]
+
+            if branch in (
+                "main",
+                "master"
+            ):
+
+                print(
+                    f"\n✅ Branche principale : "
+                    f"{branch}"
+                )
+
+                return {
+
+                    "success":
+                        True,
+
+                    "branch":
+                        branch
+                }
+
+    # ========================================================
+    # ORIGIN MAIN
+    # ========================================================
+
+    main_result = run_git_command(
+
+        [
+            "git",
+            "show-ref",
+            "--verify",
+            "--quiet",
+            "refs/remotes/origin/main"
+        ],
+
+        project_dir
+    )
+
+    if main_result["success"]:
 
         print(
-            f"\n❌ Erreur GitHub Agent : {e}"
+            "\n✅ Branche principale : main"
         )
 
         return {
 
-            "git_repo":
-                GITHUB_REPOSITORY,
+            "success":
+                True,
 
-            "git_branch":
-                GITHUB_BRANCH,
-
-            "git_push_result":
-                str(e),
-
-            "git_return_code":
-                1,
-
-            "error":
-                str(e),
-
+            "branch":
+                "main"
         }
 
-
     # ========================================================
-    # RESULT
+    # ORIGIN MASTER
     # ========================================================
 
-    messages = result.get(
-        "messages",
-        []
+    master_result = run_git_command(
+
+        [
+            "git",
+            "show-ref",
+            "--verify",
+            "--quiet",
+            "refs/remotes/origin/master"
+        ],
+
+        project_dir
     )
 
+    if master_result["success"]:
 
-    if not messages:
-
-        git_result = (
-            "Aucune réponse du GitHub AI Agent."
+        print(
+            "\n✅ Branche principale : master"
         )
 
-        return_code = 1
+        return {
 
-    else:
+            "success":
+                True,
 
-        last_message = messages[-1]
-
-        git_result = getattr(
-            last_message,
-            "content",
-            ""
-        )
-
-        return_code = 0
-
-
-    # ========================================================
-    # RETURN
-    # ========================================================
-
-    print(
-        "\n"
-        + "=" * 60
-    )
-
-    print(
-        "✅ GITHUB DEPLOY AGENT TERMINÉ"
-    )
-
-    print(
-        "=" * 60
-    )
-
-
-    print(
-        git_result
-    )
-
+            "branch":
+                "master"
+        }
 
     return {
 
-        "git_repo":
-            GITHUB_REPOSITORY,
+        "success":
+            False,
+
+        "error":
+            (
+                "Aucune branche principale "
+                "origin/main ou origin/master "
+                "n'a été trouvée."
+            )
+    }
+
+
+# ============================================================
+# STEP 6 — SWITCH MAIN / MASTER
+# ============================================================
+
+def switch_to_main_branch(
+    project_dir: str,
+    base_branch: str
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print(
+        f"🔀 STEP 6 — SWITCH "
+        f"{base_branch.upper()}"
+    )
+    print("=" * 70)
+
+    # ========================================================
+    # LOCAL BRANCH
+    # ========================================================
+
+    switch_result = run_git_command(
+
+        [
+            "git",
+            "switch",
+            base_branch
+        ],
+
+        project_dir
+    )
+
+    if switch_result["success"]:
+
+        print(
+            f"\n✅ Branche "
+            f"{base_branch} sélectionnée."
+        )
+
+        return {
+
+            "success":
+                True,
+
+            "branch":
+                base_branch
+        }
+
+    # ========================================================
+    # CREATE FROM REMOTE
+    # ========================================================
+
+    create_result = run_git_command(
+
+        [
+            "git",
+            "switch",
+            "-c",
+            base_branch,
+            "--track",
+            f"origin/{base_branch}"
+        ],
+
+        project_dir
+    )
+
+    if not create_result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                (
+                    f"Impossible de faire "
+                    f"git switch {base_branch}.\n"
+                    + create_result["stderr"]
+                )
+        }
+
+    print(
+        f"\n✅ Branche "
+        f"{base_branch} créée."
+    )
+
+    return {
+
+        "success":
+            True,
+
+        "branch":
+            base_branch
+    }
+
+
+# ============================================================
+# STEP 7 — GIT PULL
+# ============================================================
+
+def pull_main_branch(
+    project_dir: str,
+    base_branch: str
+) -> dict:
+
+    print("\n" + "=" * 70)
+    print(
+        f"⬇️ STEP 7 — GIT PULL "
+        f"{base_branch.upper()}"
+    )
+    print("=" * 70)
+
+    result = run_git_command(
+
+        [
+            "git",
+            "pull",
+            "origin",
+            base_branch
+        ],
+
+        project_dir
+    )
+
+    if not result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                (
+                    f"git pull origin "
+                    f"{base_branch} a échoué.\n"
+                    + result["stderr"]
+                )
+        }
+
+    print(
+        "\n✅ git pull terminé."
+    )
+
+    return {
+
+        "success":
+            True
+    }
+
+
+# ============================================================
+# STEP 8A — CHECK EXACT REMOTE ISSUE BRANCH
+# ============================================================
+
+def remote_issue_branch_exists(
+    project_dir: str,
+    issue_key: str
+) -> dict:
+    """
+    Vérifie l'existence EXACTE de :
+
+        refs/heads/KAN-1
+
+    Important :
+
+        feature/KAN-1
+
+    NE DOIT PAS être considéré comme :
+
+        KAN-1
+    """
+
+    print("\n" + "=" * 70)
+    print(
+        f"🌐 CHECK REMOTE BRANCH : "
+        f"{issue_key}"
+    )
+    print("=" * 70)
+
+    result = run_git_command(
+
+        [
+            "git",
+            "ls-remote",
+            "--heads",
+            "origin",
+            f"refs/heads/{issue_key}"
+        ],
+
+        project_dir
+    )
+
+    if not result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "exists":
+                False,
+
+            "error":
+                (
+                    "Impossible de vérifier "
+                    f"la branche distante {issue_key}.\n"
+                    + result["stderr"]
+                )
+        }
+
+    exists = False
+
+    for line in result["stdout"].splitlines():
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        parts = line.split()
+
+        if len(parts) >= 2:
+
+            remote_ref = parts[-1]
+
+            if remote_ref == (
+                f"refs/heads/{issue_key}"
+            ):
+
+                exists = True
+                break
+
+    if exists:
+
+        print(
+            f"\n✅ Branche distante EXACTE "
+            f"'{issue_key}' trouvée."
+        )
+
+    else:
+
+        print(
+            f"\nℹ️ Branche distante EXACTE "
+            f"'{issue_key}' absente."
+        )
+
+    return {
+
+        "success":
+            True,
+
+        "exists":
+            exists,
+
+        "stdout":
+            result["stdout"],
+
+        "stderr":
+            result["stderr"]
+    }
+
+
+# ============================================================
+# STEP 8B — ISSUE BRANCH
+# ============================================================
+
+def prepare_issue_branch(
+    project_dir: str,
+    issue_key: str
+) -> dict:
+    """
+    Prépare EXACTEMENT la branche Jira.
+
+    Exemple :
+
+        KAN-1
+
+    Logique :
+
+        remote KAN-1 existe ?
+              |
+          +---+---+
+          |       |
+         OUI     NON
+          |       |
+       switch   créer
+       KAN-1    KAN-1
+          |       |
+          +---+---+
+              |
+          KAN-1
+    """
+
+    print("\n" + "=" * 70)
+    print(
+        f"🎫 STEP 8 — ISSUE BRANCH : "
+        f"{issue_key}"
+    )
+    print("=" * 70)
+
+    # ========================================================
+    # CHECK REMOTE EXACT
+    # ========================================================
+
+    remote_result = remote_issue_branch_exists(
+
+        project_dir,
+        issue_key
+    )
+
+    if not remote_result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                remote_result["error"]
+        }
+
+    # ========================================================
+    # REMOTE EXISTS
+    # ========================================================
+
+    if remote_result["exists"]:
+
+        print(
+            f"\n🌐 Remote '{issue_key}' existe."
+        )
+
+        # ----------------------------------------------------
+        # Vérifier si branche locale existe
+        # ----------------------------------------------------
+
+        local_result = run_git_command(
+
+            [
+                "git",
+                "branch",
+                "--list",
+                issue_key
+            ],
+
+            project_dir
+        )
+
+        if not local_result["success"]:
+
+            return {
+
+                "success":
+                    False,
+
+                "error":
+                    (
+                        f"Impossible de vérifier "
+                        f"la branche locale {issue_key}.\n"
+                        + local_result["stderr"]
+                    )
+            }
+
+        # ----------------------------------------------------
+        # LOCAL EXISTS
+        # ----------------------------------------------------
+
+        if local_result["stdout"].strip():
+
+            print(
+                f"\n✅ Branche locale "
+                f"{issue_key} existe."
+            )
+
+            switch_result = run_git_command(
+
+                [
+                    "git",
+                    "switch",
+                    issue_key
+                ],
+
+                project_dir
+            )
+
+            if not switch_result["success"]:
+
+                return {
+
+                    "success":
+                        False,
+
+                    "error":
+                        (
+                            f"Impossible de sélectionner "
+                            f"{issue_key}.\n"
+                            + switch_result["stderr"]
+                        )
+                }
+
+            # ------------------------------------------------
+            # Synchroniser avec remote
+            # ------------------------------------------------
+
+            pull_result = run_git_command(
+
+                [
+                    "git",
+                    "pull",
+                    "--rebase",
+                    "origin",
+                    issue_key
+                ],
+
+                project_dir
+            )
+
+            if not pull_result["success"]:
+
+                return {
+
+                    "success":
+                        False,
+
+                    "error":
+                        (
+                            f"Impossible de synchroniser "
+                            f"{issue_key} avec GitHub.\n"
+                            + pull_result["stderr"]
+                        )
+                }
+
+            return {
+
+                "success":
+                    True,
+
+                "branch":
+                    issue_key,
+
+                "created":
+                    False
+            }
+
+        # ----------------------------------------------------
+        # LOCAL ABSENT → TRACK REMOTE
+        # ----------------------------------------------------
+
+        print(
+            f"\n➡️ Création de la branche locale "
+            f"{issue_key} depuis origin/{issue_key}"
+        )
+
+        create_result = run_git_command(
+
+            [
+                "git",
+                "switch",
+                "-c",
+                issue_key,
+                "--track",
+                f"origin/{issue_key}"
+            ],
+
+            project_dir
+        )
+
+        if not create_result["success"]:
+
+            return {
+
+                "success":
+                    False,
+
+                "error":
+                    (
+                        f"Impossible de créer "
+                        f"{issue_key} depuis "
+                        f"origin/{issue_key}.\n"
+                        + create_result["stderr"]
+                    )
+            }
+
+        return {
+
+            "success":
+                True,
+
+            "branch":
+                issue_key,
+
+            "created":
+                True
+        }
+
+    # ========================================================
+    # REMOTE DOES NOT EXIST
+    # ========================================================
+
+    print(
+        f"\nℹ️ Remote '{issue_key}' "
+        f"n'existe pas."
+    )
+
+    # ========================================================
+    # CHECK LOCAL
+    # ========================================================
+
+    local_result = run_git_command(
+
+        [
+            "git",
+            "branch",
+            "--list",
+            issue_key
+        ],
+
+        project_dir
+    )
+
+    if not local_result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                (
+                    f"Impossible de vérifier "
+                    f"la branche locale {issue_key}.\n"
+                    + local_result["stderr"]
+                )
+        }
+
+    # ========================================================
+    # LOCAL EXISTS
+    # ========================================================
+
+    if local_result["stdout"].strip():
+
+        print(
+            f"\n⚠️ Branche locale "
+            f"{issue_key} existe déjà."
+        )
+
+        switch_result = run_git_command(
+
+            [
+                "git",
+                "switch",
+                issue_key
+            ],
+
+            project_dir
+        )
+
+        if not switch_result["success"]:
+
+            return {
+
+                "success":
+                    False,
+
+                "error":
+                    (
+                        f"Impossible de sélectionner "
+                        f"{issue_key}.\n"
+                        + switch_result["stderr"]
+                    )
+            }
+
+        return {
+
+            "success":
+                True,
+
+            "branch":
+                issue_key,
+
+            "created":
+                False
+        }
+
+    # ========================================================
+    # CREATE NEW LOCAL BRANCH FROM CURRENT MAIN
+    # ========================================================
+
+    print(
+        f"\n➡️ Création branche "
+        f"{issue_key}"
+    )
+
+    create_result = run_git_command(
+
+        [
+            "git",
+            "switch",
+            "-c",
+            issue_key
+        ],
+
+        project_dir
+    )
+
+    if not create_result["success"]:
+
+        return {
+
+            "success":
+                False,
+
+            "error":
+                (
+                    f"Impossible de créer "
+                    f"{issue_key}.\n"
+                    + create_result["stderr"]
+                )
+        }
+
+    print(
+        f"\n✅ Branche "
+        f"{issue_key} créée depuis "
+        f"la branche principale."
+    )
+
+    return {
+
+        "success":
+            True,
+
+        "branch":
+            issue_key,
+
+        "created":
+            True
+    }
+
+
+# ============================================================
+# MAIN GIT AGENT
+# ============================================================
+
+def git_agent(
+    state
+) -> dict:
+
+    print("\n" + "=" * 80)
+    print("🤖 GIT PREPARATION AGENT")
+    print("=" * 80)
+
+    # ========================================================
+    # 1. ISSUE KEY
+    # ========================================================
+
+    issue_key = state.get(
+        "issue_key"
+    )
+    
+    
+    
+    github_url = state.get("github_url")
+
+    if not issue_key:
+
+        return git_error_state(
+
+            None,
+
+            None,
+
+            None,
+
+            "Issue key manquante."
+        )
+
+    issue_key = str(
+        issue_key
+    ).strip().upper()
+
+    print(
+        f"\n🎫 Issue : {issue_key}"
+    )
+
+    # ========================================================
+    # 3. PROJECT DIRECTORY
+    # ========================================================
+
+    project_dir = get_project_dir()
+
+    if not project_dir:
+
+        return git_error_state(
+
+            None,
+
+            None,
+
+            issue_key,
+
+            (
+                "OPENCODE_PROJECT_DIR "
+                "n'est pas défini dans .env."
+            )
+        )
+
+    print(
+        f"📁 Project : {project_dir}"
+    )
+
+    if not os.path.isdir(project_dir):
+
+        return git_error_state(
+
+            project_dir,
+
+            None,
+
+            issue_key,
+
+            "Le dossier local n'existe pas : " + project_dir
+        )
+
+    # ========================================================
+    # 5. VERIFY .GIT
+    # ========================================================
+
+    verify_result = verify_git_repository(
+        project_dir
+    )
+
+    if not verify_result["success"]:
+
+        return git_error_state(
+
+            project_dir,
+
+            None,
+
+            issue_key,
+
+            verify_result.get(
+                "error",
+                "Le projet n'est pas git."
+            )
+        )
+
+    # ========================================================
+    # 6. STATUS
+    # ========================================================
+
+    status_result = get_git_status(
+        project_dir
+    )
+
+    if not status_result["success"]:
+
+        return git_error_state(
+
+            project_dir,
+
+            None,
+
+            issue_key,
+
+            status_result.get(
+                "error",
+                "git status a échoué."
+            ),
+
+            status_result.get(
+                "git_status",
+                ""
+            )
+        )
+
+    git_status = status_result[
+        "git_status"
+    ]
+
+    # Vérifier le remote avant toute mutation locale et avant le fetch.
+    remote_result = verify_git_remote(
+        project_dir,
+        github_url
+    )
+
+    if not remote_result["success"]:
+        return git_error_state(
+            project_dir,
+            github_url,
+            issue_key,
+            remote_result.get(
+                "error",
+                "La vérification du remote Git a échoué."
+            ),
+            git_status
+        )
+
+    remote_url = remote_result.get("remote_url")
+
+    stash_result = stash_local_changes(
+        project_dir,
+        issue_key
+    )
+
+    if not stash_result["success"]:
+        return git_error_state(
+            project_dir,
+            None,
+            issue_key,
+            stash_result["error"],
+            git_status
+        )
+
+    changes_stashed = stash_result["stashed"]
+
+    # ========================================================
+    # 7. FETCH
+    # ========================================================
+
+    fetch_result = fetch_origin(
+        project_dir
+    )
+
+    if not fetch_result["success"]:
+
+        return git_error_state(
+
+            project_dir,
+
+            None,
+
+            issue_key,
+
+            fetch_result.get(
+                "error",
+                "git fetch origin a échoué."
+            ),
+
+            git_status
+        )
+
+    # ========================================================
+    # 8. MAIN / MASTER
+    # ========================================================
+
+    branch_result = detect_main_branch(
+        project_dir
+    )
+
+    if not branch_result["success"]:
+
+        return git_error_state(
+
+            project_dir,
+
+            None,
+
+            issue_key,
+
+            branch_result.get(
+                "error",
+                "Impossible de détecter main/master."
+            ),
+
+            git_status
+        )
+
+    base_branch = branch_result[
+        "branch"
+    ]
+
+    # ========================================================
+    # 9. SWITCH MAIN / MASTER
+    # ========================================================
+
+    switch_result = switch_to_main_branch(
+
+        project_dir,
+
+        base_branch
+    )
+
+    if not switch_result["success"]:
+
+        return git_error_state(
+
+            project_dir,
+
+            None,
+
+            issue_key,
+
+            switch_result.get(
+                "error",
+                "Impossible de sélectionner main/master."
+            ),
+
+            git_status,
+
+            base_branch
+        )
+
+    # ========================================================
+    # 10. PULL MAIN / MASTER
+    # ========================================================
+
+    pull_result = pull_main_branch(
+
+        project_dir,
+
+        base_branch
+    )
+
+    if not pull_result["success"]:
+
+        return git_error_state(
+
+            project_dir,
+
+            None,
+
+            issue_key,
+
+            pull_result.get(
+                "error",
+                "git pull a échoué."
+            ),
+
+            git_status,
+
+            base_branch
+        )
+
+    # ========================================================
+    # 11. ISSUE BRANCH
+    # ========================================================
+
+    issue_result = prepare_issue_branch(
+
+        project_dir,
+
+        issue_key
+    )
+
+    if not issue_result["success"]:
+
+        return git_error_state(
+
+            project_dir,
+
+            None,
+
+            issue_key,
+
+            issue_result.get(
+                "error",
+                "Impossible de préparer la branche Jira."
+            ),
+
+            git_status,
+
+            base_branch
+        )
+
+    final_branch = issue_result[
+        "branch"
+    ]
+
+    branch_created = issue_result[
+        "created"
+    ]
+
+    if changes_stashed:
+        restore_result = restore_stashed_changes(
+            project_dir
+        )
+
+        if not restore_result["success"]:
+            return git_error_state(
+                project_dir,
+                None,
+                issue_key,
+                restore_result["error"],
+                git_status,
+                issue_key
+            )
+
+    # ========================================================
+    # 12. FINAL STATUS
+    # ========================================================
+
+    final_status_result = run_git_command(
+
+        [
+            "git",
+            "status",
+            "--short"
+        ],
+
+        project_dir
+    )
+
+    final_status = ""
+
+    if final_status_result["success"]:
+
+        final_status = (
+            final_status_result["stdout"]
+        )
+
+    # ========================================================
+    # SUCCESS
+    # ========================================================
+
+    print("\n" + "=" * 80)
+    print("✅ GIT PREPARATION TERMINÉE")
+    print("=" * 80)
+
+    print(
+        f"\n📁 Project : {project_dir}"
+    )
+
+    print(
+        "🔗 Remote : configuré dans le repository local"
+    )
+
+    print(
+        f"🌿 Base    : {base_branch}"
+    )
+
+    print(
+        f"🎫 Issue   : {final_branch}"
+    )
+
+    print(
+        f"🆕 Created : {branch_created}"
+    )
+
+    print(
+        "\n🚀 OpenCode peut maintenant travailler."
+    )
+
+    print(
+        "\n✅ git_ready = True"
+    )
+
+    return {
+
+        "git_ready":
+            True,
+
+        "project_dir":
+            project_dir,
+
+        "issue_key":
+            issue_key,
+
+        "git_status":
+            final_status,
 
         "git_branch":
-            GITHUB_BRANCH,
+            final_branch,
 
-        "git_push_result":
-            git_result,
+        "git_branch_created":
+            branch_created,
 
-        "git_return_code":
-            return_code,
+        "git_base_branch":
+            base_branch,
 
+        "github_url":
+            github_url,
+
+        "repository_url":
+            remote_url,
+
+        "message":
+            "✅ URL GitHub vérifiée.",
+
+        "git_error":
+            None,
+
+        "error":
+            None
     }
+
+
+# ============================================================
+# END OF FILE
+# ============================================================

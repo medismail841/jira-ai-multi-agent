@@ -1312,21 +1312,19 @@ button:disabled {
    ============================================================ */
 
 .success-message {
-  margin: 0 18px 18px;
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
 
-  padding: 12px;
+  display: grid;
+  place-items: center;
 
-  border-radius: 9px;
+  padding: 24px;
 
-  background: #ecfdf5;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(5px);
 
-  border: 1px solid #a7f3d0;
-
-  color: #047857;
-
-  font-size: 12px;
-
-  font-weight: 700;
+  animation: message-fade-in 0.2s ease-out;
 }
 
 
@@ -1382,21 +1380,130 @@ button:disabled {
    ============================================================ */
 
 .error-message {
-  margin-top: 20px;
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
 
-  padding: 13px 16px;
+  display: grid;
+  place-items: center;
 
-  border-radius: 10px;
+  padding: 24px;
 
-  background: #fef2f2;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(5px);
 
-  border: 1px solid #fecaca;
+  animation: message-fade-in 0.2s ease-out;
+}
 
-  color: #b91c1c;
+.message-dialog {
+  position: relative;
 
-  font-size: 13px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
 
-  font-weight: 600;
+  width: min(100%, 520px);
+  padding: 26px 54px 26px 24px;
+
+  border: 1px solid #dbe4ee;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+
+  animation: message-pop-in 0.24s ease-out;
+}
+
+.error-message .message-dialog {
+  border-top: 4px solid #dc2626;
+}
+
+.success-message .message-dialog {
+  border-top: 4px solid #059669;
+}
+
+.message-icon {
+  display: grid;
+  flex: 0 0 42px;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.error-message .message-icon {
+  background: #dc2626;
+}
+
+.success-message .message-icon {
+  background: #059669;
+}
+
+.message-copy {
+  min-width: 0;
+}
+
+.message-copy strong {
+  display: block;
+  margin: 2px 0 7px;
+
+  color: #172033;
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.message-copy p {
+  margin: 0;
+
+  color: #526174;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.message-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+
+  border: 0;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.message-close:hover {
+  background: #e2e8f0;
+  color: #172033;
+}
+
+@keyframes message-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes message-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 
@@ -1586,4 +1693,231 @@ textarea::-webkit-scrollbar-thumb:hover {
 
 .subtask-item p {
   margin: 8px 0 0;
+}
+
+.orchestrator-column,
+.step-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.orchestrator-column > .step-card:nth-of-type(4),
+.step-column > .step-card:nth-of-type(4) {
+  order: -1;
+}
+
+.orchestrator-column > .step-card,
+.step-column > .step-card {
+  order: 0;
+}
+
+.orchestrator-column > .step-card:nth-of-type(4),
+.step-column > .step-card:nth-of-type(4) {
+  order: -1;
+}
+
+:host {
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  color: #17343a;
+}
+
+.app-container {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(15, 118, 110, 0.11), transparent 28%),
+    radial-gradient(circle at 100% 12%, rgba(234, 88, 12, 0.08), transparent 24%),
+    #f4f7f6;
+}
+
+.header {
+  height: 82px;
+  padding: 0 clamp(18px, 4vw, 56px);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid #dce7e4;
+  backdrop-filter: blur(16px);
+}
+
+.logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: #0f766e;
+  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.20);
+}
+
+.header h1,
+.column-header h2,
+.step-card-header h3,
+.workflow-map-header h3 {
+  color: #17343a;
+}
+
+.main-content {
+  min-height: calc(100vh - 82px);
+  padding: clamp(20px, 3vw, 38px) clamp(18px, 4vw, 56px);
+}
+
+.columns-container {
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 0;
+}
+
+.orchestrator-column {
+  border-right: 1px solid #d7e2df;
+}
+
+.column-icon {
+  border-radius: 8px;
+  background: #e4f2ef;
+  border-color: #c6e2dc;
+}
+
+.search-card,
+.workflow-map-container,
+.ticket-card,
+.analysis-card,
+.prompt-card,
+.opencode-result-card,
+.step-card {
+  border: 1px solid #dce7e4;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(24, 61, 65, 0.06);
+}
+
+.search-card {
+  background: rgba(255, 255, 255, 0.90);
+}
+
+.search-card h3 {
+  color: #27545a;
+}
+
+.search-container input,
+.edit-form input,
+.edit-form textarea {
+  border-radius: 6px;
+  border-color: #cbdad6;
+  color: #17343a;
+}
+
+.search-container input:focus,
+.edit-form input:focus,
+.edit-form textarea:focus,
+.prompt-editor:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.13);
+}
+
+button {
+  border-radius: 6px;
+  background: #0f766e;
+}
+
+button:hover:not(:disabled) {
+  background: #0b5f59;
+  box-shadow: 0 5px 12px rgba(15, 118, 110, 0.20);
+}
+
+.execute-button {
+  background: #c2410c;
+}
+
+.execute-button:hover:not(:disabled) {
+  background: #9a3412;
+}
+
+.save-button {
+  background: #1769aa;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #12558b;
+}
+
+.workflow-map-container {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.workflow-global-running,
+.status-running {
+  background: #e4f2ef;
+  color: #0f766e;
+}
+
+.workflow-global-running .global-status-dot,
+.map-track-progress,
+.connector-progress {
+  background: #0f766e;
+}
+
+.map-node-wrapper.active .node-circle {
+  border-color: #0f766e;
+  color: #0f766e;
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+}
+
+.map-node-wrapper.completed .node-circle {
+  background: #0f766e;
+  border-color: #0f766e;
+}
+
+.step-badge {
+  border-radius: 4px;
+  background: #e4f2ef;
+  color: #0f766e;
+}
+
+.step-card-header {
+  padding: 18px 20px;
+  background: rgba(250, 252, 251, 0.72);
+}
+
+.step-content {
+  padding: 20px;
+}
+
+.ticket-field {
+  grid-template-columns: 118px minmax(0, 1fr);
+  border-color: #edf2f0;
+}
+
+.prompt-content pre,
+.markdown-content pre {
+  border-radius: 6px;
+  border-color: #dce7e4;
+  background: #f5f9f8;
+}
+
+.loading {
+  border-radius: 6px;
+  background: #e4f2ef;
+  border-color: #c6e2dc;
+  color: #0f766e;
+}
+
+.error-message {
+  border-radius: 6px;
+}
+
+@media (max-width: 650px) {
+  .header {
+    height: 72px;
+  }
+
+  .header h1 {
+    font-size: 17px;
+  }
+
+  .header p {
+    font-size: 11px;
+  }
+
+  .main-content {
+    min-height: calc(100vh - 72px);
+  }
+
+  .ticket-field {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
 }
