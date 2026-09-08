@@ -89,7 +89,20 @@ export class AppComponent {
   ];
 
   get visibleWorkflowSteps(): any[] {
-    return this.workflowSteps.filter(step => step.id !== 4);
+    const complexity = (this.orchestratorComplexity || this.stepComplexity || '').toUpperCase();
+    const isComplex = complexity === 'COMPLEX';
+
+    return this.workflowSteps.filter(step => {
+      if (step.id === 4) {
+        return false;
+      }
+
+      if (isComplex && [3, 5, 6].includes(step.id)) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
 
@@ -150,6 +163,10 @@ export class AppComponent {
   stepLoading: boolean = false;
 
   stepTicket: any = null;
+
+  stepSubtasks: any[] = [];
+
+  stepComplexity: string = '';
 
   stepAnalysis: string = '';
 
@@ -221,6 +238,43 @@ export class AppComponent {
 
   clearSuccess(): void {
     this.successMessage = '';
+  }
+
+
+  private buildOrchestratorFallbackPrompt(response: any): string {
+    const ticket = response?.ticket || {};
+    const subtasks = Array.isArray(response?.subtasks)
+      ? response.subtasks
+      : [];
+
+    if (!subtasks.length) {
+      return '';
+    }
+
+    const subtaskLines = subtasks
+      .map((subtask: any, index: number) => {
+        const title = subtask.title || subtask.summary || `Subtask ${index + 1}`;
+        const description = subtask.description || 'Implement the subtask requirements.';
+        return `${index + 1}. ${title}: ${description}`;
+      })
+      .join('\n');
+
+    return `# Implementation Task
+
+Implement Jira ticket ${ticket.key || response?.issue_key || ''} in the target project.
+
+## Ticket
+${ticket.summary || ''}
+
+${ticket.description || ''}
+
+## Technical Analysis
+${response?.analysis || 'Follow the existing project conventions.'}
+
+## Required subtasks
+${subtaskLines}
+
+Implement the required changes, preserve existing behavior, and verify the result with the appropriate project tests.`;
   }
 
 
@@ -603,6 +657,40 @@ export class AppComponent {
   }
 
 
+  getOrchestratorProgress(): number {
+    if (this.orchestratorDeployed) {
+      return 100;
+    }
+
+    if (this.orchestratorResult) {
+      return 80;
+    }
+
+    if (this.orchestratorAnalysis) {
+      return 25;
+    }
+
+    return this.orchestratorTicket ? 10 : 0;
+  }
+
+
+  getStepByStepProgress(): number {
+    if (this.stepDeployed) {
+      return 100;
+    }
+
+    if (this.stepResult) {
+      return 80;
+    }
+
+    if (this.stepAnalysis) {
+      return 25;
+    }
+
+    return this.stepTicket ? 10 : 0;
+  }
+
+
   // ============================================================
   // ORCHESTRATOR - WORKFLOW
   // ============================================================
@@ -770,8 +858,18 @@ export class AppComponent {
           response.subtasks || [];
 
         this.orchestratorComplexity =
-          response.complexity || '';
+          (response.complexity || '').toUpperCase();
 
+        if (this.orchestratorComplexity === 'COMPLEX') {
+          this.orchestratorPrompt = '';
+          this.orchestratorGitResult = null;
+          this.orchestratorResult = '';
+          this.orchestratorDeployResult = null;
+          this.orchestrating = false;
+          this.orchestratorStep = 2;
+          this.successMessage = 'Ticket complexe détecté : le split ticket est activé. Les autres agents sont désactivés.';
+          return;
+        }
 
         /*
          * Petit délai visuel pour laisser la map
@@ -796,14 +894,18 @@ export class AppComponent {
             // ==================================================
 
             this.orchestratorPrompt =
-              response.prompt || '';
+              response.prompt ||
+              response.coding_instruction ||
+              this.buildOrchestratorFallbackPrompt(response);
 
             this.orchestratorStep = 3;
 
             if (!this.orchestratorPrompt) {
 
+              this.orchestrating = false;
+
               this.errorMessage =
-                'Le backend a terminé mais aucun prompt n’a été retourné.';
+                'Le backend a terminé sans fournir une instruction exploitable.';
             } else {
               this.prepareOrchestratorGit();
             }
@@ -1364,6 +1466,10 @@ export class AppComponent {
 
     this.stepTicket = null;
 
+    this.stepSubtasks = [];
+
+    this.stepComplexity = '';
+
     this.stepAnalysis = '';
 
     this.stepPrompt = '';
@@ -1407,6 +1513,20 @@ export class AppComponent {
           response;
 
         this.stepLoading = false;
+
+        this.http.get<any>(
+          `${this.apiUrl}/api/jira/${encodeURIComponent(key)}/breakdown`
+        ).subscribe({
+          next: (breakdown) => {
+            this.stepComplexity = breakdown?.complexity || '';
+            this.stepSubtasks = Array.isArray(breakdown?.subtasks)
+              ? breakdown.subtasks
+              : [];
+          },
+          error: (error) => {
+            console.error('❌ Erreur breakdown Jira:', error);
+          }
+        });
       },
 
 

@@ -66,6 +66,33 @@ AUTO_SPLIT_COMPLEX_TICKETS = os.getenv(
 ).lower() == "true"
 
 
+def get_workflow_policy(complexity: str) -> dict:
+    """Return the workflow policy for a given ticket complexity."""
+
+    normalized = (complexity or "").upper()
+
+    if normalized == "COMPLEX":
+        return {
+            "agent_mode": "split",
+            "allowed_steps": [1, 2],
+            "show_prompt_agent": False,
+            "show_git_agent": False,
+            "show_opencode_agent": False,
+            "show_deploy_agent": False,
+            "next_step": "Split ticket only",
+        }
+
+    return {
+        "agent_mode": "full",
+        "allowed_steps": [1, 2, 3, 4, 5, 6],
+        "show_prompt_agent": True,
+        "show_git_agent": True,
+        "show_opencode_agent": True,
+        "show_deploy_agent": True,
+        "next_step": "Prompt -> Git -> OpenCode -> Deploy",
+    }
+
+
 # ============================================================
 # NODE : CLASSIFICATION DU TICKET
 # ============================================================
@@ -204,8 +231,11 @@ async def split_ticket_node(state: AgentState) -> AgentState:
 # ============================================================
 
 def route_complexity(state: AgentState) -> str:
+    """Complex tickets stay on the split-ticket path only."""
 
-    if state.get("complexity") == "COMPLEX":
+    complexity = (state.get("complexity") or "").upper()
+
+    if complexity == "COMPLEX":
         return "split"
 
     return "prompt"

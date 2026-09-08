@@ -206,19 +206,7 @@
             <div
               class="map-track-progress"
               [style.width.%]="
-                orchestratorStep === 0
-                  ? 0
-                  : orchestratorStep === 1
-                    ? 10
-                    : orchestratorStep === 2
-                      ? 25
-                      : orchestratorStep === 3
-                        ? 40
-                        : orchestratorStep === 4
-                          ? 60
-                          : orchestratorStep === 5
-                            ? 80
-                            : 100
+                getOrchestratorProgress()
               "
             ></div>
 
@@ -282,7 +270,8 @@
                   *ngIf="
                     !isOrchestratorStepRunning(step.id) &&
                     !isOrchestratorStepCompleted(step.id) &&
-                    !isOrchestratorStepFailed(step.id)
+                    !isOrchestratorStepFailed(step.id) &&
+                    (step.id !== 5 || orchestratorAnalysis)
                   "
                   class="node-icon"
                 >
@@ -331,7 +320,7 @@
               <div class="node-meta">
 
                 <span class="node-step">
-                  Étape 0{{ step.id }}
+                  Étape 0{{ i + 1 }}
                 </span>
 
                 <span class="node-title">
@@ -573,7 +562,7 @@
 
         <section
           class="step-card"
-          *ngIf="orchestratorPrompt"
+          *ngIf="orchestratorPrompt && orchestratorComplexity !== 'COMPLEX'"
         >
 
           <div class="step-card-header">
@@ -742,8 +731,8 @@
         <!-- ================================================= -->
 
         <section
-          class="step-card"
-          *ngIf="orchestratorGitResult"
+          class="step-card step-opencode"
+          *ngIf="orchestratorAnalysis && orchestratorComplexity !== 'COMPLEX'"
         >
 
           <div class="step-card-header">
@@ -809,8 +798,8 @@
         <!-- ================================================= -->
 
         <section
-          class="step-card"
-          *ngIf="orchestratorResult"
+          class="step-card step-deploy"
+          *ngIf="orchestratorAnalysis && orchestratorComplexity !== 'COMPLEX'"
         >
 
           <div class="step-card-header">
@@ -867,7 +856,7 @@
 
 
             <div
-              class="success-message"
+              class="deployment-success-message"
               *ngIf="orchestratorDeployed"
             >
 
@@ -1049,19 +1038,7 @@
             <div
               class="map-track-progress"
               [style.width.%]="
-                stepDeployed
-                  ? 100
-                  : stepResult
-                    ? 80
-                    : stepGitResult
-                      ? 60
-                      : stepPrompt
-                        ? 40
-                        : stepAnalysis
-                          ? 25
-                          : stepTicket
-                            ? 10
-                            : 0
+                getStepByStepProgress()
               "
             ></div>
 
@@ -1123,7 +1100,8 @@
                   *ngIf="
                     !isStepRunning(step.id) &&
                     !isStepCompleted(step.id) &&
-                    !isStepFailed(step.id)
+                    !isStepFailed(step.id) &&
+                    (step.id !== 5 || stepAnalysis)
                   "
                   class="node-icon"
                 >
@@ -1166,7 +1144,7 @@
               <div class="node-meta">
 
                 <span class="node-step">
-                  Étape 0{{ step.id }}
+                  Étape 0{{ i + 1 }}
                 </span>
 
                 <span class="node-title">
@@ -1371,6 +1349,31 @@
                 <span>
                   {{ stepTicket.updated }}
                 </span>
+              </div>
+
+              <div class="ticket-field" *ngIf="stepComplexity">
+                <strong>Complexité :</strong>
+                <span>{{ stepComplexity }}</span>
+              </div>
+
+              <div
+                class="split-breakdown"
+                *ngIf="stepSubtasks.length"
+              >
+                <strong>
+                  Split into {{ stepSubtasks.length }} subtasks
+                </strong>
+
+                <details
+                  *ngFor="let subtask of stepSubtasks"
+                  class="subtask-item"
+                >
+                  <summary>
+                    {{ subtask.key }} - {{ subtask.title || subtask.summary }}
+                  </summary>
+                  <span>{{ subtask.status || 'To Do' }}</span>
+                  <p>{{ subtask.description }}</p>
+                </details>
               </div>
 
             </div>
@@ -1633,7 +1636,7 @@
 
         <section
           class="step-card"
-          *ngIf="stepAnalysis"
+          *ngIf="stepAnalysis && stepComplexity !== 'COMPLEX'"
         >
 
           <div class="step-card-header">
@@ -1817,8 +1820,8 @@
         <!-- ================================================= -->
 
         <section
-          class="step-card"
-          *ngIf="stepGitResult"
+          class="step-card step-opencode"
+          *ngIf="stepAnalysis && stepComplexity !== 'COMPLEX'"
         >
 
           <div class="step-card-header">
@@ -1870,7 +1873,7 @@
 
 
             <div
-              class="success-message"
+              class="inline-success-message"
               *ngIf="
                 stepSuccess &&
                 stepResult
@@ -1891,8 +1894,8 @@
         <!-- ================================================= -->
 
         <section
-          class="step-card"
-          *ngIf="stepResult"
+          class="step-card step-deploy"
+          *ngIf="stepAnalysis && stepComplexity !== 'COMPLEX'"
         >
 
           <div class="step-card-header">
@@ -1949,7 +1952,7 @@
 
 
             <div
-              class="success-message"
+              class="inline-success-message"
               *ngIf="stepDeployed"
             >
 

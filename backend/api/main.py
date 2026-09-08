@@ -59,6 +59,8 @@ from graph.workflow import (
     build_prompt_graph,
     build_opencode_graph,
     build_git_deploy_graph,
+    classify_ticket,
+    split_ticket_node,
 )
 
 
@@ -665,6 +667,58 @@ async def get_jira_ticket(
 
             status_code=500,
 
+            detail=str(e)
+        )
+
+
+@app.get(
+    "/api/jira/{issue_key}/breakdown"
+)
+async def get_jira_ticket_breakdown(
+
+    issue_key: str,
+):
+
+    try:
+
+        issue_key = issue_key.strip().upper()
+
+        if not issue_key:
+            raise HTTPException(
+                status_code=400,
+                detail="Issue key manquante."
+            )
+
+        ticket_result = await jira_agent_vf({"issue_key": issue_key})
+        ticket = ticket_result.get("ticket") if isinstance(ticket_result, dict) else None
+
+        if not ticket:
+            raise ValueError("Aucun ticket Jira retourné.")
+
+        complexity = classify_ticket(
+            f"{ticket.get('summary', '')}\n{ticket.get('description', '')}"
+        )
+
+        if complexity != "COMPLEX":
+            return {
+                "complexity": complexity,
+                "subtasks": [],
+            }
+
+        split_result = await split_ticket_node({"ticket": ticket})
+
+        return {
+            "complexity": complexity,
+            "subtasks": split_result.get("subtasks", []),
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        print(f"\n❌ Erreur breakdown Jira : {e}")
+        raise HTTPException(
+            status_code=500,
             detail=str(e)
         )
 
@@ -1279,54 +1333,32 @@ async def run_agents(
                 "n'a pas retourné un dictionnaire."
             )
 
-        return {
-
-            "success":
-                True,
-
-            "workflow":
-                "B",
-
-            "mode":
-                "orchestrator",
-
-            "issue_key":
-                result.get(
-                    "issue_key"
-                ),
-
-            "ticket":
-                result.get(
-                    "ticket"
-                ),
-
-            "analysis":
-                result.get(
-                    "analysis"
-                ),
-
-                       "prompt":
-                result.get(
-                    "coding_instruction"
-                ),
-
-            "complexity":
-                result.get(
-                    "complexity"
-                ),
-
-            "subtasks":
-                result.get(
-                    "subtasks"
-                ),
-
-            "next_step":
-                (
-                    "Workflow A — Git Preparation "
-                    "→ Workflow D — OpenCode "
-                    "→ Workflow C — Git Deploy"
-                ),
+        complexity = (result.get("complexity") or "").upper()
+        policy = {
+            "agent_mode": "split" if complexity == "COMPLEX" else "full",
+            "next_step": (
+                "Split ticket only"
+                if complexity == "COMPLEX"
+                else "Workflow A — Git Preparation → Workflow D — OpenCode → Workflow C — Git Deploy"
+            ),
         }
+
+        payload = {
+            "success": True,
+            "workflow": "B",
+            "mode": "orchestrator",
+            "issue_key": result.get("issue_key"),
+            "ticket": result.get("ticket"),
+            "analysis": result.get("analysis"),
+            "complexity": result.get("complexity"),
+            "subtasks": result.get("subtasks"),
+            "next_step": policy["next_step"],
+        }
+
+        if complexity != "COMPLEX":
+            payload["prompt"] = result.get("coding_instruction")
+
+        return payload
 
     except HTTPException:
 

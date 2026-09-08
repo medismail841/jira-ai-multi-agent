@@ -56,7 +56,7 @@ from dotenv import load_dotenv
 # ENVIRONMENT
 # ============================================================
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 # ============================================================

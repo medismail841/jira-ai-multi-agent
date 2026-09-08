@@ -31,7 +31,7 @@ body {
 
 .app-container {
   min-height: 100vh;
-  background: #f5f7fb;
+  background: #d9e2ec;
 }
 
 
@@ -1327,6 +1327,19 @@ button:disabled {
   animation: message-fade-in 0.2s ease-out;
 }
 
+.deployment-success-message {
+  padding: 14px 16px;
+
+  border: 1px solid #a7f3d0;
+  border-radius: 9px;
+
+  background: #ecfdf5;
+  color: #047857;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
 
 /* ============================================================
    LOADING
@@ -1897,6 +1910,17 @@ button:hover:not(:disabled) {
 
 .error-message {
   border-radius: 6px;
+}
+
+/* Keep the large workflow result panels in execution order. */
+.orchestrator-column > .step-card.step-opencode,
+.step-column > .step-card.step-opencode {
+  order: 4;
+}
+
+.orchestrator-column > .step-card.step-deploy,
+.step-column > .step-card.step-deploy {
+  order: 5;
 }
 
 @media (max-width: 650px) {
