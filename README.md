@@ -446,11 +446,11 @@ python graph/visualize_workflow.py
 
 Diagrammes générés :
 
-- `git_prepare_workflow.png`
-- `prompt_workflow.png`
-- `git_deploy_workflow.png`
-- `opencode_workflow.png`
 - `main_workflow.png`
+- `Analyser un ticket.png`
+- `Générer le prompt.png`
+- `Exécution du Prompt.png`
+- `Récupérer un ticket Jira.png`
 
 ### Comment le diagramme est créé
 
@@ -623,3 +623,4 @@ backend/
 
 
 ## 👨‍💻 Lien youtube
+https://youtu.be/9VvPYKqx9Eg
